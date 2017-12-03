@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	//Read command line arguments
 	file := flag.String("file", "test.log", "Log file to view")
 	seperator := flag.String("seperator", "~", "Log column seperator")
 	headersString := flag.String("headers", "", "Comma seperated log columns header labels")
@@ -31,6 +32,7 @@ func main() {
 		}
 		return sizes
 	}()
+	//Output to terminal
 	out := bufio.NewWriter(os.Stdout)
 	logReader := logreader.NewLogReader(*file, *out, logreader.Config{*seperator, headers,  columnSizes})
 	logReader.StartReading()
