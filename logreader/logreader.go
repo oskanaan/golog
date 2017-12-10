@@ -1,16 +1,13 @@
 package logreader
 
 import (
-	"bufio"
 	"strings"
-	"github.com/hpcloud/tail"
-	"fmt"
-	"strconv"
+	"os"
+	"bufio"
 )
 
 type LogReader struct {
 	input  string
-	output bufio.Writer
 	config Config
 }
 
@@ -19,67 +16,58 @@ type Config struct {
 	Delim string
 	Headers []string
 	ColumnSizes []int
+	Capacity int
 }
 
-func NewLogReader(input string, output bufio.Writer, config Config ) LogReader {
+func NewLogReader(input string, config Config ) LogReader {
 	var l LogReader
 	l.input = input
-	l.output = output
 	l.config = config
 
 	return l
 }
 
-//Starts tailing the log file
-func (l LogReader) StartReading() {
-	t, _ := tail.TailFile(l.input, tail.Config{Follow: true, ReOpen: true, Poll: true})
-	l.writeHeader()
+//Reads the last N lines where N=The capacity configuration value
+//Returns a two dimensional slice containing the parsed rows
+func (l LogReader) Tail() [][]string {
+	file ,_ := os.Open(l.input)
+	defer file.Close()
 
-	for line := range t.Lines {
-		l.parseLine(line.Text)
+	scanner := bufio.NewScanner(file)
+	rows := [][] string {}
+
+	for scanner.Scan() {
+		if len(rows) >= l.config.Capacity {
+			rows = rows[1:]
+		}
+		rows = append(rows, l.parseLine(scanner.Text()))
 	}
+	return rows
 }
 
-//Writes the header values in the "headers" slice and rpad them using the column size as the corresponding index
-func (l LogReader) writeHeader() {
-	var format string
-	var output string
+//Gets a slice of strings representing the headers of the log
+func (l LogReader) GetHeaders() [] string{
+	return l.config.Headers
+}
 
-	for i:=0 ; i<len(l.config.Headers) ; i++ {
-		format = output
-		//rpad columns using the configured column size
-		format += "%-"+strconv.Itoa(l.config.ColumnSizes[i])+"s"
-		output = fmt.Sprintf(format, l.config.Headers[i])
-	}
-	l.output.WriteString(output)
-	l.output.WriteString("\n")
-	l.output.Flush()
+//Gets a slice of strings representing the headers of the log
+func (l LogReader) GetColumnSizes() [] int{
+	return l.config.ColumnSizes
 }
 
 //Parses a single log file line using the "delim" character to separate the columns
-//Returns a boolean indicating that the parse was successful or not
-func (l LogReader) parseLine(line string) bool {
+//Returns a slice of strings containing the row data
+func (l LogReader) parseLine(line string) []string {
 	if line == "" {
-		return false
+		return []string{}
 	}
 
 	columns := strings.Split(line, l.config.Delim)
 	var columnValues []string
-	var format string
-	var output string
 
-	for index, col := range columns {
+	for _, col := range columns {
 		columnValues = append(columnValues, col)
-		format = output
-		//rpad columns using the configured column size
-		format += "%-"+strconv.Itoa(l.config.ColumnSizes[index])+"s"
-		output = fmt.Sprintf(format, col)
 	}
 
-	//Display the formatted line on the terminal 
-	l.output.WriteString(output)
-	l.output.WriteString("\n")
-	l.output.Flush()
-
-	return true
+	return columnValues
 }
