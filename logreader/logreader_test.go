@@ -1,64 +1,73 @@
 package logreader
 
 import (
-	"bufio"
-	"bytes"
 	"testing"
-	"time"
-	"io/ioutil"
-	"strings"
+	"reflect"
 )
 
 func TestLogReader_parseLine(t *testing.T) {
-	var output bytes.Buffer
 	actual := "Test~Log~entry"
-	expected := "Test      Log       entry     \n"
+	expected := []string{"Test", "Log", "entry"}
 
-	writer := bufio.NewWriter(&output)
-	logReader := NewLogReader(actual, *writer, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(actual, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3})
 	//Test parseLine directly
-	isReadSuccessful := logReader.parseLine(actual)
+	result := logReader.parseLine(actual)
 
-	if !isReadSuccessful {
-		t.Errorf(`Output Log: Expected a line to be read, bug got an error`)
-	}
-
-	result := output.String()
-	if result != expected {
+	if !reflect.DeepEqual(result, expected) {
 		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
 	}
 }
 
-func TestLogReader_StartReading(t *testing.T) {
-	var output bytes.Buffer
-	input := "../test_logs/TestLogReader_StartReading_input.log"
-	expectedBytes,_ := ioutil.ReadFile("../test_logs/TestLogReader_StartReading_output.log")
+func TestLogReader_Tail(t *testing.T) {
+	input := "../test_logs/TestLogReader_Tail_input.log"
+	expected := [][]string{
+		{"16/11/2010", "Thread-6", "com.test"},
+		{"17/11/2010", "Thread-7", "com.test"},
+		{"18/11/2010", "Thread-8", "com.test"},
+	}
 
-	writer := bufio.NewWriter(&output)
-	logReader := NewLogReader(input, *writer, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
-	go logReader.StartReading()
-	time.Sleep(1 * time.Second)
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3})
+	result := logReader.Tail()
 
-	result := output.String()
-	if result != string(expectedBytes) {
-		t.Errorf(`Output Log: Expected %s got %s`, string(expectedBytes), result)
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+	}
+}
+
+func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
+	input := "../test_logs/TestLogReader_Tail_input.log"
+	expected := [][]string{
+		{"17/11/2010", "Thread-7", "com.test"},
+		{"18/11/2010", "Thread-8", "com.test"},
+	}
+
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 2})
+	result := logReader.Tail()
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
 	}
 }
 
 func TestLogReader_Headers(t *testing.T) {
-	var output bytes.Buffer
 	input := "../test_logs/TestLogReader_Headers_input.log"
-	expectedBytes,_ := ioutil.ReadFile("../test_logs/TestLogReader_Headers_output.log")
+	expected := [] string {"Date", "Thread", "Package"}
 
-	writer := bufio.NewWriter(&output)
-	logReader := NewLogReader(input, *writer, Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 20, 10}})
-	go logReader.StartReading()
-	time.Sleep(1 * time.Second)
-
-	result := output.String()
-	result = result[:strings.Index(result, "\n")]
-	expected := string(expectedBytes)[:strings.Index(string(expectedBytes), "\n")]
-	if result != expected {
-		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 20, 10}, 3})
+	if !reflect.DeepEqual(logReader.GetHeaders(), expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, logReader.GetHeaders())
 	}
+}
+
+func TestLogReader_GetColumnSizes(t *testing.T) {
+	expected := []int{15, 20, 10}
+    logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package"}, expected, 3})
+
+    if !reflect.DeepEqual(logReader.GetColumnSizes(), expected) {
+    	t.Errorf(`Expected column-sizes config to match the value returned by GetColumnSizes, expected %s, got %s`, expected, logReader.GetColumnSizes())
+	}
+}
+
+func TestLogReader_ScrollTo(t *testing.T){
+
 }
