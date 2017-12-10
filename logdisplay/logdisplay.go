@@ -1,3 +1,4 @@
+//logdisplay package uses termui to display data processed a logreader.LogReader
 package logdisplay
 
 import (
@@ -11,12 +12,16 @@ type LogDisplay struct {
 	currentPage *[][]string
 }
 
+//Returns a new instance of a LogDisplay
 func NewLogDisplay(logReader logreader.LogReader) LogDisplay{
 	var l LogDisplay
 	l.logReader = logReader
 	return l
 }
 
+//Renders the log data to the terminal
+//The data will be read from the logReader and displayed in a column format using termui
+//Currenlty this listens to terminal resize events and CTRL-C
 func (l LogDisplay) Display() {
 	err := t.Init()
 	if err != nil {
@@ -39,7 +44,10 @@ func (l LogDisplay) Display() {
 
 }
 
-func (l LogDisplay) getHeader() *t.Row{
+//Sets up the columns to be displayed using the configuration data provided by the user
+//such as the column-sizes and headers
+//Returns the rows/columns to be displayed in the terminal
+func (l LogDisplay) getColumns() *t.Row{
 	var cols []*t.Row
 	for index, val := range l.logReader.GetColumnSizes() {
 		column := t.NewList()
@@ -69,13 +77,14 @@ func (l LogDisplay) renderBody() {
 
 	t.Body.AddRows(
 		t.NewRow(
-			l.getHeader()),
+			l.getColumns()),
 	)
 
 	t.Body.Align()
 	t.Render(t.Body)
 }
 
+//Returns the tail data based on the "capacity" configuration passed to the program
 func (l LogDisplay) Tail() *[][]string{
 	tail := l.logReader.Tail()
 	return &tail
