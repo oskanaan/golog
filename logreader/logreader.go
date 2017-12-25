@@ -3,12 +3,12 @@ package logreader
 import (
 	"strings"
 	"os"
-	"bufio"
 )
 
 type LogReader struct {
 	input  string
 	config Config
+	line int
 }
 
 //Config is used to configure the behaviour of the log reader
@@ -17,6 +17,7 @@ type Config struct {
 	Headers []string
 	ColumnSizes []int
 	Capacity int
+	SeverityColumn string
 }
 
 func NewLogReader(input string, config Config ) LogReader {
@@ -33,26 +34,28 @@ func (l LogReader) Tail() [][]string {
 	file ,_ := os.Open(l.input)
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
 	rows := [][] string {}
-
-	for scanner.Scan() {
-		if len(rows) >= l.config.Capacity {
-			rows = rows[1:]
+	linesRead := 0
+	currentPosition := -2000
+	for linesRead < l.config.Capacity {
+		file.Seek(int64(currentPosition),2)
+		buf := make([]byte, 2000 )
+		file.Read(buf)
+		lines := strings.Split(string(buf), "\n")
+		for i:=len(lines)-1 ; i>0 && linesRead < l.config.Capacity ; i-- {
+			tempRows := [][] string {}
+			tempRows = append(tempRows, l.parseLine(lines[i]))
+			rows = append(tempRows, rows ...)
+			linesRead ++
+			currentPosition -= len(lines[i]) + 1
 		}
-		rows = append(rows, l.parseLine(scanner.Text()))
 	}
+
 	return rows
 }
 
-//Gets a slice of strings representing the headers of the log
-func (l LogReader) GetHeaders() [] string{
-	return l.config.Headers
-}
-
-//Gets a slice of strings representing the headers of the log
-func (l LogReader) GetColumnSizes() [] int{
-	return l.config.ColumnSizes
+func countLines(lines string) int {
+	return len(strings.Split(lines, "\n"))
 }
 
 //Parses a single log file line using the "delim" character to separate the columns
@@ -70,4 +73,19 @@ func (l LogReader) parseLine(line string) []string {
 	}
 
 	return columnValues
+}
+
+//Gets a slice of strings representing the headers of the log
+func (l LogReader) GetHeaders() [] string{
+	return l.config.Headers
+}
+
+//Gets a slice of strings representing the headers of the log
+func (l LogReader) GetColumnSizes() [] int{
+	return l.config.ColumnSizes
+}
+
+//Gets a the severity column name
+func (l LogReader) GetSeverityColumnName() string{
+	return l.config.SeverityColumn
 }
