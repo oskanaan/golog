@@ -195,6 +195,14 @@ func (l *LogDisplay) keybindings(g *gocui.Gui) error {
 		return err
 	}
 
+	if err := g.SetKeybinding("main", gocui.KeyHome, gocui.ModNone, l.home); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("main", gocui.KeyEnd, gocui.ModNone, l.end); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -251,6 +259,41 @@ func cursorUp(g *gocui.Gui, v *gocui.View) error {
 	}
 	return nil
 }
+
+func (l *LogDisplay) home(g *gocui.Gui, v *gocui.View) error {
+	g.Update(func(g *gocui.Gui) error {
+		v, err := g.View("main")
+		if err != nil {
+			return err
+		}
+		l.currentPage = l.logReader.Head()
+		v.Clear()
+		fmt.Fprintf(v, "%s", l.getFormattedLog())
+		//fmt.Fprintf(v, "%s", l.getFormattedLog())
+		return nil
+	})
+
+	return nil
+
+}
+
+func (l *LogDisplay) end(g *gocui.Gui, v *gocui.View) error {
+	g.Update(func(g *gocui.Gui) error {
+		v, err := g.View("main")
+		if err != nil {
+			return err
+		}
+		l.currentPage = l.logReader.Tail()
+		v.Clear()
+		fmt.Fprintf(v, "%s", l.getFormattedLog())
+		//fmt.Fprintf(v, "%s", l.getFormattedLog())
+		return nil
+	})
+
+	return nil
+
+}
+
 
 func (l *LogDisplay) pageDown(g *gocui.Gui, v *gocui.View) error {
 	g.Update(func(g *gocui.Gui) error {

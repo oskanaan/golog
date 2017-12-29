@@ -50,6 +50,11 @@ func tail(file *os.File, capacity int) ([]string, int) {
 	return readFileFromEnd(file, capacity, fileLineCount+1)
 }
 
+//A convenience method to head a file
+func head(file *os.File, capacity int) ([]string, int) {
+	return readFileFromEnd(file, capacity, 0)
+}
+
 func getPreviousLine(file *os.File, currentPosition int) (string, int) {
 	previousLineNumber := currentPosition - 1
 	if previousLineNumber < 0 {

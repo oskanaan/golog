@@ -8,10 +8,8 @@ import (
 func TestLogReader_parseLine(t *testing.T) {
 	actual := "Test~Log~entry"
 	expected := []string{"Test", "Log", "entry"}
-
-	logReader := NewLogReader(actual, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
-	//Test parseLine directly
-	result := logReader.parseLine(actual)
+    //Test parseLine directly
+	result := parseLine(actual, "~")
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
@@ -28,6 +26,23 @@ func TestLogReader_Tail(t *testing.T) {
 
 	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
 	result := *logReader.Tail()
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+	}
+}
+
+func TestLogReader_Head(t *testing.T) {
+	input := "../test_logs/TestLogReader_Tail_input.log"
+	expected := [][]string{
+		{"11/11/2010", "Thread-1", "com.test"},
+		{"12/11/2010", "Thread-2", "com.test"},
+		{"13/11/2010", "Thread-3", "com.test"},
+	}
+
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader.Tail()
+	result := *logReader.Head()
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
