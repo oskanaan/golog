@@ -179,19 +179,19 @@ func (l *LogDisplay) keybindings(g *gocui.Gui) error {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyArrowDown, gocui.ModNone, cursorDown); err != nil {
-		return err
-	}
-
-	if err := g.SetKeybinding("main", gocui.KeyArrowUp, gocui.ModNone, cursorUp); err != nil {
-		return err
-	}
-
 	if err := g.SetKeybinding("main", gocui.KeyPgdn, gocui.ModNone, l.pageDown); err != nil {
 		return err
 	}
 
 	if err := g.SetKeybinding("main", gocui.KeyPgup, gocui.ModNone, l.pageUp); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("main", gocui.KeyArrowUp, gocui.ModNone, l.arrowUp); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("main", gocui.KeyArrowDown, gocui.ModNone, l.arrowDown); err != nil {
 		return err
 	}
 
@@ -282,4 +282,38 @@ func (l *LogDisplay) pageUp(g *gocui.Gui, v *gocui.View) error {
 	})
 
 	return nil
+}
+
+func (l *LogDisplay) arrowDown(g *gocui.Gui, v *gocui.View) error {
+	g.Update(func(g *gocui.Gui) error {
+		v, err := g.View("main")
+		if err != nil {
+			return err
+		}
+		l.currentPage = l.logReader.Down()
+		v.Clear()
+		fmt.Fprintf(v, "%s", l.getFormattedLog())
+		//fmt.Fprintf(v, "%s", l.getFormattedLog())
+		return nil
+	})
+
+	return nil
+
+}
+
+func (l *LogDisplay) arrowUp(g *gocui.Gui, v *gocui.View) error {
+	g.Update(func(g *gocui.Gui) error {
+		v, err := g.View("main")
+		if err != nil {
+			return err
+		}
+		l.currentPage = l.logReader.Up()
+		v.Clear()
+		fmt.Fprintf(v, "%s", l.getFormattedLog())
+		//fmt.Fprintf(v, "%s", l.getFormattedLog())
+		return nil
+	})
+
+	return nil
+
 }

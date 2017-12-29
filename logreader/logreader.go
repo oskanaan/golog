@@ -44,7 +44,7 @@ func (l *LogReader) Tail() *[][]string {
 	return &rows
 }
 
-//Reads the last N lines where N=The capacity configuration value starting from the current offset excluding the last line
+//Reads the last N lines where N=The capacity configuration value starting from the current offset excluding the last page
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) PageUp() *[][]string {
 	file ,_ := os.Open(l.input)
@@ -63,7 +63,7 @@ func (l *LogReader) PageUp() *[][]string {
 	return &rows
 }
 
-//Reads the last N lines where N=The capacity configuration value starting from the current offset including the line after the last
+//Reads the last N lines where N=The capacity configuration value starting from the first line after the current page
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) PageDown() *[][]string {
 	file ,_ := os.Open(l.input)
@@ -79,6 +79,43 @@ func (l *LogReader) PageDown() *[][]string {
 	return &rows
 }
 
+//Reads the last N lines where N=The capacity configuration value starting from the current offset excluding the last line
+//Returns a two dimensional slice containing the parsed rows
+func (l *LogReader) Up() *[][]string {
+	file ,_ := os.Open(l.input)
+	defer file.Close()
+
+	data ,offset := readFileFromEnd(file, l.config.Capacity, l.currentOffset + l.config.Capacity - 1 )
+	rows := [][] string {}
+	if len(data) == 0 {
+		return &rows
+	}
+	for _, line := range data {
+		rows = append(rows, l.parseLine(line))
+	}
+
+	l.currentOffset = offset
+	return &rows
+}
+
+//Reads the last N lines where N=The capacity configuration value starting from the current line + 1
+//Returns a two dimensional slice containing the parsed rows
+func (l *LogReader) Down() *[][]string {
+	file ,_ := os.Open(l.input)
+	defer file.Close()
+
+	data ,offset := readFileFromEnd(file, l.config.Capacity, l.currentOffset + l.config.Capacity + 1 )
+	rows := [][] string {}
+	if len(data) == 0 {
+		return &rows
+	}
+	for _, line := range data {
+		rows = append(rows, l.parseLine(line))
+	}
+
+	l.currentOffset = offset
+	return &rows
+}
 
 func countLines(lines string) int {
 	return len(strings.Split(lines, "\n"))

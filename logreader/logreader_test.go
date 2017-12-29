@@ -116,6 +116,85 @@ func TestLogReader_PageDown_untilEnd(t *testing.T) {
 	}
 }
 
+func TestLogReader_Down(t *testing.T) {
+	input := "../test_logs/TestLogReader_Tail_input.log"
+	expected := [][]string{
+		{"12/11/2010", "Thread-2", "com.test"},
+		{"13/11/2010", "Thread-3", "com.test"},
+		{"14/11/2010", "Thread-4", "com.test"},
+	}
+
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader.Tail()
+	logReader.PageUp()
+	logReader.PageUp()
+	result := *logReader.Down()
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+	}
+}
+
+func TestLogReader_Down_shouldntGoBeyondEndOfFile(t *testing.T) {
+	input := "../test_logs/TestLogReader_Tail_input.log"
+	expected := [][]string{
+		{"16/11/2010", "Thread-6", "com.test"},
+		{"17/11/2010", "Thread-7", "com.test"},
+		{"18/11/2010", "Thread-8", "com.test"},
+	}
+
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader.Tail()
+	logReader.PageUp()
+	for i:=0 ; i<20 ; i++ {
+		logReader.Down()
+	}
+	result := *logReader.Down()
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+	}
+}
+
+func TestLogReader_Up(t *testing.T) {
+	input := "../test_logs/TestLogReader_Tail_input.log"
+	expected := [][]string{
+		{"12/11/2010", "Thread-2", "com.test"},
+		{"13/11/2010", "Thread-3", "com.test"},
+		{"14/11/2010", "Thread-4", "com.test"},
+	}
+
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader.Tail()
+	logReader.PageUp()
+	result := *logReader.Up()
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+	}
+}
+
+func TestLogReader_Up_shouldntGoBeforeBeginningOfFile(t *testing.T) {
+	input := "../test_logs/TestLogReader_Tail_input.log"
+	expected := [][]string{
+		{"11/11/2010", "Thread-1", "com.test"},
+		{"12/11/2010", "Thread-2", "com.test"},
+		{"13/11/2010", "Thread-3", "com.test"},
+	}
+
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader.Tail()
+	logReader.PageUp()
+	for i:=0 ; i<20 ; i++ {
+		logReader.Up()
+	}
+	result := *logReader.Up()
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+	}
+}
+
 func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 	input := "../test_logs/TestLogReader_Tail_input.log"
 	expected := [][]string{
