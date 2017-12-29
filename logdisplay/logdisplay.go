@@ -8,17 +8,23 @@ import (
 	"github.com/jroimartin/gocui"
 	"log"
 	"bytes"
+	"time"
+	"sync"
 )
+
+var wg sync.WaitGroup
 
 type LogDisplay struct {
 	logReader logreader.LogReader
 	currentPage *[][]string
+	tailOn *bool
 }
 
 //Returns a new instance of a LogDisplay
 func NewLogDisplay(logReader logreader.LogReader) LogDisplay{
 	var l LogDisplay
 	l.logReader = logReader
+	l.tailOn = &[]bool{true}[0]
 	return l
 }
 
@@ -38,9 +44,32 @@ func (l *LogDisplay) DisplayUI() {
 		log.Panicln(err)
 	}
 
+	wg.Add(1)
+	go func(g *gocui.Gui, l *LogDisplay){
+		for {
+			if *l.tailOn {
+
+				g.Update(func(g *gocui.Gui) error {
+					v, err := g.View("main")
+					if err != nil {
+						return err
+					}
+					l.currentPage = l.logReader.Tail()
+					v.Clear()
+					fmt.Fprintf(v, "%s", l.getFormattedLog())
+					return nil
+				})
+			}
+
+			time.Sleep(500 * time.Millisecond)
+		}
+	}(g, l)
+
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		log.Panicln(err)
 	}
+
+	wg.Wait()
 }
 
 func (l LogDisplay) DisplayStdout() {
@@ -163,7 +192,7 @@ func (l LogDisplay) formatColumnText(text string, columnIndex int) string {
 //CTRL-C : quit
 //Mouse Left: show log entry details
 //Page Down: scroll one page down
-//Page Up: scroll on page up
+//Page Up: scroll one page up
 //Arrow Down: scroll down
 //Arrow Up: scroll up
 func (l *LogDisplay) keybindings(g *gocui.Gui) error {
@@ -289,6 +318,7 @@ func (l *LogDisplay) end(g *gocui.Gui, v *gocui.View) error {
 		//fmt.Fprintf(v, "%s", l.getFormattedLog())
 		return nil
 	})
+	l.tailOn = &[]bool{true}[0]
 
 	return nil
 
@@ -313,6 +343,8 @@ func (l *LogDisplay) pageDown(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (l *LogDisplay) pageUp(g *gocui.Gui, v *gocui.View) error {
+	l.tailOn = &[]bool{false}[0]
+
 	g.Update(func(g *gocui.Gui) error {
 		v, err := g.View("main")
 		if err != nil {
@@ -345,6 +377,8 @@ func (l *LogDisplay) arrowDown(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (l *LogDisplay) arrowUp(g *gocui.Gui, v *gocui.View) error {
+	l.tailOn = &[]bool{false}[0]
+
 	g.Update(func(g *gocui.Gui) error {
 		v, err := g.View("main")
 		if err != nil {
