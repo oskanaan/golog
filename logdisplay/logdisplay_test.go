@@ -1,13 +1,13 @@
 package logdisplay
 
 import (
-	"testing"
+	"bytes"
 	"github.com/oskanaan/golog/logreader"
 	"reflect"
-	"text/tabwriter"
-	"bytes"
 	"regexp"
 	"strings"
+	"testing"
+	"text/tabwriter"
 )
 
 func TestLogReader_Tail(t *testing.T) {
@@ -100,7 +100,7 @@ func TestLogDisplay_writeHeader(t *testing.T) {
 	logdisplay.writeHeader(tabWriter)
 	tabWriter.Flush()
 
-	if match, _ := regexp.MatchString(expectedRegexp, strings.TrimSpace(actual.String())) ; match {
+	if match, _ := regexp.MatchString(expectedRegexp, strings.TrimSpace(actual.String())); match {
 		t.Errorf(`Output Log: Expected %s to match %s`, actual.String(), expectedRegexp)
 	}
 }

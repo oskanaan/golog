@@ -2,26 +2,26 @@
 package logdisplay
 
 import (
-	"github.com/oskanaan/golog/logreader"
-	"text/tabwriter"
+	"bytes"
 	"fmt"
 	"github.com/jroimartin/gocui"
+	"github.com/oskanaan/golog/logreader"
 	"log"
-	"bytes"
-	"time"
 	"sync"
+	"text/tabwriter"
+	"time"
 )
 
 var wg sync.WaitGroup
 
 type LogDisplay struct {
-	logReader *logreader.LogReader
+	logReader   *logreader.LogReader
 	currentPage *[][]string
-	tailOn *bool
+	tailOn      *bool
 }
 
 //Returns a new instance of a LogDisplay
-func NewLogDisplay(logReader *logreader.LogReader) LogDisplay{
+func NewLogDisplay(logReader *logreader.LogReader) LogDisplay {
 	var l LogDisplay
 	l.logReader = logReader
 	l.tailOn = &[]bool{true}[0]
@@ -46,7 +46,7 @@ func (l *LogDisplay) DisplayUI() {
 	}
 
 	wg.Add(1)
-	go func(g *gocui.Gui, l *LogDisplay){
+	go func(g *gocui.Gui, l *LogDisplay) {
 		for {
 			if *l.tailOn {
 
@@ -182,14 +182,14 @@ func (l LogDisplay) formatColumnText(text string, columnIndex int) string {
 	}
 
 	if configuredSize > 0 && len(formattedText) < configuredSize {
-		formattedText = func () string {
+		formattedText = func() string {
 			padded := formattedText
 			paddedLength := len(padded)
-			for i := 0 ; i < configuredSize - paddedLength ; i++ {
+			for i := 0; i < configuredSize-paddedLength; i++ {
 				padded = padded + " "
 			}
 			return padded
-		} ()
+		}()
 	}
 
 	return formattedText
@@ -318,7 +318,6 @@ func (l *LogDisplay) end(g *gocui.Gui, v *gocui.View) error {
 	return nil
 
 }
-
 
 //Navigates one page down where the page size equals the "capacity" configuration
 //Returns an error if the main view cannot be found

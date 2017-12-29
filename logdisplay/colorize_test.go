@@ -1,13 +1,13 @@
 package logdisplay
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestColorize_colorizeHeader(t *testing.T) {
 	header := "header1\theader2\theader3"
-	expected := fmt.Sprint(fmt.Sprintf("\033[3%d;%d;1m", 2,4 ), header, "\033[0m")
+	expected := fmt.Sprint(fmt.Sprintf("\033[3%d;%d;1m", 2, 4), header, "\033[0m")
 	actual := colorizeHeader(header)
 
 	if actual != expected {

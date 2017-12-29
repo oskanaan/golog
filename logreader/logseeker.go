@@ -1,16 +1,16 @@
 package logreader
 
 import (
-	"os"
-	"io"
-	"bytes"
 	"bufio"
+	"bytes"
+	"io"
+	"os"
 	"strings"
 )
 
-const readBufSize  = 5120
+const readBufSize = 5120
 
-const(
+const (
 	beginning = iota
 	middle
 	end
@@ -21,7 +21,7 @@ const(
 //from the end of the file.
 //Returns a slice containing a maximum of "capacity" entries and the current position.
 func readFileFromEnd(file *os.File, capacity, lineNumber int) ([]string, int) {
-	rows := make([] string, 0)
+	rows := make([]string, 0)
 	linesRead := 0
 	currentPosition := lineNumber
 	for linesRead < capacity {
@@ -36,10 +36,10 @@ func readFileFromEnd(file *os.File, capacity, lineNumber int) ([]string, int) {
 			continue
 		}
 
-		tempRows := make([] string, 0)
+		tempRows := make([]string, 0)
 		tempRows = append(tempRows, line)
-		rows = append(tempRows, rows ...)
-		linesRead ++
+		rows = append(tempRows, rows...)
+		linesRead++
 	}
 
 	return rows, currentPosition
@@ -125,8 +125,8 @@ func stackTrace(r *os.File, lineNum int, delim string) (stackTrace string) {
 		}
 
 		line, _, _ = readLine(r, index)
-		index ++
-		linesRead ++
+		index++
+		linesRead++
 
 		//if s, ok := r.(io.Seeker); ok {
 		//	s.Seek(int64(len(line))+1, io.SeekCurrent) // seek relative to current file pointer

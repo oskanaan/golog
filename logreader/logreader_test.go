@@ -1,14 +1,14 @@
 package logreader
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 )
 
 func TestLogReader_parseLine(t *testing.T) {
 	actual := "Test~Log~entry"
 	expected := []string{"Test", "Log", "entry"}
-    //Test parseLine directly
+	//Test parseLine directly
 	result := parseLine(actual, "~")
 
 	if !reflect.DeepEqual(result, expected) {
@@ -161,7 +161,7 @@ func TestLogReader_Down_shouldntGoBeyondEndOfFile(t *testing.T) {
 	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
 	logReader.Tail()
 	logReader.PageUp()
-	for i:=0 ; i<20 ; i++ {
+	for i := 0; i < 20; i++ {
 		logReader.Down()
 	}
 	result := *logReader.Down()
@@ -200,7 +200,7 @@ func TestLogReader_Up_shouldntGoBeforeBeginningOfFile(t *testing.T) {
 	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
 	logReader.Tail()
 	logReader.PageUp()
-	for i:=0 ; i<20 ; i++ {
+	for i := 0; i < 20; i++ {
 		logReader.Up()
 	}
 	result := *logReader.Up()
@@ -227,7 +227,7 @@ func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 
 func TestLogReader_Headers(t *testing.T) {
 	input := "../test_logs/TestLogReader_Headers_input.log"
-	expected := [] string {"Date", "Thread", "Package"}
+	expected := []string{"Date", "Thread", "Package"}
 
 	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 20, 10}, 3, ""})
 	if !reflect.DeepEqual(logReader.GetHeaders(), expected) {
@@ -237,23 +237,23 @@ func TestLogReader_Headers(t *testing.T) {
 
 func TestLogReader_GetColumnSizes(t *testing.T) {
 	expected := []int{15, 20, 10}
-    logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package"}, expected, 3, ""})
+	logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package"}, expected, 3, ""})
 
-    if !reflect.DeepEqual(logReader.GetColumnSizes(), expected) {
-    	t.Errorf(`Expected column-sizes config to match the value returned by GetColumnSizes, expected %s, got %s`, expected, logReader.GetColumnSizes())
+	if !reflect.DeepEqual(logReader.GetColumnSizes(), expected) {
+		t.Errorf(`Expected column-sizes config to match the value returned by GetColumnSizes, expected %s, got %s`, expected, logReader.GetColumnSizes())
 	}
 }
 
 func TestLogReader_GetSeverityColumnName(t *testing.T) {
 	expected := "Test"
-	logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package", "Test"}, []int{1,2,3,4}, 3, "Test"})
+	logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package", "Test"}, []int{1, 2, 3, 4}, 3, "Test"})
 
 	if logReader.GetSeverityColumnName() != expected {
 		t.Errorf(`Expected column-sizes config to match the value returned by GetColumnSizes, expected %s, got %s`, expected, logReader.GetSeverityColumnName())
 	}
 }
 
-func TestLogReader_lineCounter(t *testing.T){
+func TestLogReader_lineCounter(t *testing.T) {
 	lines := "abc\n123\nefg\nmorelines\nend"
 	expected := 5
 	actual := countLines(lines)
