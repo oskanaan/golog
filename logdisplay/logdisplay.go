@@ -22,7 +22,7 @@ func NewLogDisplay(logReader logreader.LogReader) LogDisplay{
 	return l
 }
 
-func (l LogDisplay) DisplayUI() {
+func (l *LogDisplay) DisplayUI() {
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Panicln(err)
@@ -30,10 +30,11 @@ func (l LogDisplay) DisplayUI() {
 	defer g.Close()
 	g.Cursor = true
 	g.Mouse = true
+	l.tail()
 
 	g.SetManagerFunc(l.layout)
 
-	if err := keybindings(g); err != nil {
+	if err := l.keybindings(g); err != nil {
 		log.Panicln(err)
 	}
 
@@ -43,6 +44,7 @@ func (l LogDisplay) DisplayUI() {
 }
 
 func (l LogDisplay) DisplayStdout() {
+	l.tail()
 	fmt.Print(l.getFormattedLog())
 }
 
@@ -68,11 +70,8 @@ func (l LogDisplay) getFormattedLog() string {
 	tabWriter := new(tabwriter.Writer)
 	var output bytes.Buffer
 	tabWriter.Init(&output, 0, 8, 0, '\t', tabwriter.TabIndent)
-
 	l.writeHeader(tabWriter)
-
 	l.writeBody(tabWriter)
-
 	tabWriter.Flush()
 
 	return output.String()
@@ -92,20 +91,30 @@ func (l LogDisplay) writeHeader(writer *tabwriter.Writer) {
 
 func (l LogDisplay) writeBody(tabWriter *tabwriter.Writer) {
 	severityIndex := l.getSeverityColumnIndex()
-	for _, row := range *l.Tail() {
+	for _, row := range *l.currentPage {
 		var rowText string
-		for index, columnText := range row {
-			formattedColText := l.formatColumnText(columnText, index)
-			rowText = rowText + formattedColText
-			if index < len(columnText)-1 {
-				rowText = rowText + "\t"
+		if len(row) == 1 {
+			rowText = row[0]
+		} else {
+			for index, columnText := range row {
+				formattedColText := l.formatColumnText(columnText, index)
+				rowText = rowText + formattedColText
+				if index < len(columnText)-1 {
+					rowText = rowText + "\t"
+				}
 			}
 		}
 
 		if rowText == "" {
 			continue
 		}
-		fmt.Fprintln(tabWriter, colorizeLogEntry(rowText, row[severityIndex]))
+
+		severity := ""
+		if len(row) > severityIndex {
+			severity = row[severityIndex]
+		}
+
+		fmt.Fprintln(tabWriter, colorizeLogEntry(rowText, severity))
 	}
 }
 
@@ -120,9 +129,8 @@ func (l LogDisplay) getSeverityColumnIndex() int {
 }
 
 //Returns the tail data based on the "capacity" configuration passed to the program
-func (l LogDisplay) Tail() *[][]string{
-	tail := l.logReader.Tail()
-	return &tail
+func (l *LogDisplay) tail() {
+	l.currentPage = l.logReader.Tail()
 }
 
 //Applies column formatting based on the program parameters.
@@ -154,9 +162,11 @@ func (l LogDisplay) formatColumnText(text string, columnIndex int) string {
 //Binds keyboard keys and mouse buttons to actions
 //CTRL-C : quit
 //Mouse Left: show log entry details
+//Page Down: scroll one page down
+//Page Up: scroll on page up
 //Arrow Down: scroll down
 //Arrow Up: scroll up
-func keybindings(g *gocui.Gui) error {
+func (l *LogDisplay) keybindings(g *gocui.Gui) error {
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		return err
 	}
@@ -174,6 +184,14 @@ func keybindings(g *gocui.Gui) error {
 	}
 
 	if err := g.SetKeybinding("main", gocui.KeyArrowUp, gocui.ModNone, cursorUp); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("main", gocui.KeyPgdn, gocui.ModNone, l.pageDown); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("main", gocui.KeyPgup, gocui.ModNone, l.pageUp); err != nil {
 		return err
 	}
 
@@ -231,5 +249,37 @@ func cursorUp(g *gocui.Gui, v *gocui.View) error {
 	if err := g.DeleteView("msg"); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (l *LogDisplay) pageDown(g *gocui.Gui, v *gocui.View) error {
+	g.Update(func(g *gocui.Gui) error {
+		v, err := g.View("main")
+		if err != nil {
+			return err
+		}
+		l.currentPage = l.logReader.PageDown()
+		v.Clear()
+		fmt.Fprintf(v, "%s", l.getFormattedLog())
+		//fmt.Fprintf(v, "%s", l.getFormattedLog())
+		return nil
+	})
+
+	return nil
+
+}
+
+func (l *LogDisplay) pageUp(g *gocui.Gui, v *gocui.View) error {
+	g.Update(func(g *gocui.Gui) error {
+		v, err := g.View("main")
+		if err != nil {
+			return err
+		}
+		l.currentPage = l.logReader.PageUp()
+		v.Clear()
+		fmt.Fprintf(v, "%s", l.getFormattedLog())
+		return nil
+	})
+
 	return nil
 }

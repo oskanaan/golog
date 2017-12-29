@@ -74,4 +74,3 @@ func TestColorize_colorizeLogEntry_unknownSeverityDefaultsToTrace(t *testing.T) 
 		t.Errorf("Expected %s, got %s", expected, actual)
 	}
 }
-

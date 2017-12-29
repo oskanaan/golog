@@ -6,9 +6,9 @@ import (
 )
 
 type LogReader struct {
-	input  string
-	config Config
-	line int
+	input         string
+	config        Config
+	currentOffset int
 }
 
 //Config is used to configure the behaviour of the log reader
@@ -30,29 +30,55 @@ func NewLogReader(input string, config Config ) LogReader {
 
 //Reads the last N lines where N=The capacity configuration value
 //Returns a two dimensional slice containing the parsed rows
-func (l LogReader) Tail() [][]string {
+func (l *LogReader) Tail() *[][]string {
 	file ,_ := os.Open(l.input)
 	defer file.Close()
 
+	data ,offset := tail(file, l.config.Capacity)
 	rows := [][] string {}
-	linesRead := 0
-	currentPosition := -2000
-	for linesRead < l.config.Capacity {
-		file.Seek(int64(currentPosition),2)
-		buf := make([]byte, 2000 )
-		file.Read(buf)
-		lines := strings.Split(string(buf), "\n")
-		for i:=len(lines)-1 ; i>0 && linesRead < l.config.Capacity ; i-- {
-			tempRows := [][] string {}
-			tempRows = append(tempRows, l.parseLine(lines[i]))
-			rows = append(tempRows, rows ...)
-			linesRead ++
-			currentPosition -= len(lines[i]) + 1
-		}
+	for _, line := range data {
+		rows = append(rows, l.parseLine(line))
 	}
 
-	return rows
+	l.currentOffset = offset
+	return &rows
 }
+
+//Reads the last N lines where N=The capacity configuration value starting from the current offset excluding the last line
+//Returns a two dimensional slice containing the parsed rows
+func (l *LogReader) PageUp() *[][]string {
+	file ,_ := os.Open(l.input)
+	defer file.Close()
+
+	data ,offset := readFileFromEnd(file, l.config.Capacity, l.currentOffset )
+	rows := [][] string {}
+	if len(data) == 0 {
+		return &rows
+	}
+	for _, line := range data {
+		rows = append(rows, l.parseLine(line))
+	}
+
+	l.currentOffset = offset
+	return &rows
+}
+
+//Reads the last N lines where N=The capacity configuration value starting from the current offset including the line after the last
+//Returns a two dimensional slice containing the parsed rows
+func (l *LogReader) PageDown() *[][]string {
+	file ,_ := os.Open(l.input)
+	defer file.Close()
+
+	data ,offset := readFileFromEnd(file, l.config.Capacity, l.currentOffset + (l.config.Capacity * 2))
+	rows := [][] string {}
+	for _, line := range data {
+		rows = append(rows, l.parseLine(line))
+	}
+
+	l.currentOffset = offset
+	return &rows
+}
+
 
 func countLines(lines string) int {
 	return len(strings.Split(lines, "\n"))
