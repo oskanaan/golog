@@ -16,7 +16,6 @@ func main() {
 	seperator := flag.String("seperator", "~", "Log column seperator")
 	headersString := flag.String("headers", "", "Comma seperated log columns header labels")
 	columnSizesString := flag.String("column-sizes", "", "Comma seperated list of columns sizes in characters")
-	capacityString := flag.String("capacity", "", "Number of lines to display at a time")
 	severityColumn := flag.String("severity", "Severity", "The column which determines the severity of the log line")
 	flag.Parse()
 
@@ -34,13 +33,7 @@ func main() {
 		return sizes
 	}()
 
-	capacity, err := strconv.Atoi(*capacityString)
-	if err != nil {
-		fmt.Errorf("terminal-capacity should be a integer")
-		syscall.Exit(1)
-	}
-
-	logReader := logreader.NewLogReader(*file, logreader.Config{*seperator, headers,  columnSizes, capacity, *severityColumn})
-	logDisplay := logdisplay.NewLogDisplay(logReader)
+	logReader := logreader.NewLogReader(*file, logreader.Config{*seperator, headers,  columnSizes, 10, *severityColumn})
+	logDisplay := logdisplay.NewLogDisplay(&logReader)
 	logDisplay.DisplayUI()
 }

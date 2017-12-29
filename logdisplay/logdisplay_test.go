@@ -20,9 +20,10 @@ func TestLogReader_Tail(t *testing.T) {
 
 	logReader := logreader.NewLogReader(input, logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
 	logdisplay := NewLogDisplay(logReader)
-	result := logdisplay.Tail()
+	logdisplay.tail()
+	result := *logdisplay.currentPage
 
-	if !reflect.DeepEqual(*result, expected) {
+	if !reflect.DeepEqual(result, expected) {
 		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
 	}
 }
@@ -36,10 +37,11 @@ func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 
 	logReader := logreader.NewLogReader(input, logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 2, ""})
 	logdisplay := NewLogDisplay(logReader)
-	result := logdisplay.Tail()
+	logdisplay.tail()
+	result := logdisplay.currentPage
 
 	if !reflect.DeepEqual(*result, expected) {
-		t.Errorf(`Output Log: Expected %s got %s`, expected, result)
+		t.Errorf(`Output Log: Expected %s got %s`, expected, *result)
 	}
 }
 
