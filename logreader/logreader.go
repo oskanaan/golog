@@ -140,6 +140,24 @@ func (l LogReader) GetSeverityColumnName() string{
 	return l.config.SeverityColumn
 }
 
+//Sets the number of rows to display capacity
+func (l *LogReader) SetCapacity(capacity int) {
+	l.config.Capacity = capacity
+}
+
+func (l *LogReader) Message(lineNum int) string{
+	file ,_ := os.Open(l.input)
+	defer file.Close()
+
+	message, _, _ := readLine(file, lineNum + l.currentOffset - 1)
+	if !strings.Contains(message, l.config.Delim) {
+		file.Seek(0,0)
+		message = stackTrace(file, lineNum + l.currentOffset - 1, l.config.Delim)
+	}
+
+	return message
+}
+
 //Reads N (N=capacity) lines starting from the offset
 //Returns a two dimensional array containing the parsed columns and the new offset
 func readLogFileFromOffset(file *os.File, delim string, capacity int, offset int) (*[][]string, int) {
