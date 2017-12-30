@@ -1,4 +1,2 @@
-# golog
-Go log reader
-
-A simple personal project just for fun
+# Golog
+A simple log file reader
