@@ -1,13 +1,13 @@
 package logdisplay
 
 import (
-	"testing"
+	"bytes"
 	"github.com/oskanaan/golog/logreader"
 	"reflect"
-	"text/tabwriter"
-	"bytes"
 	"regexp"
 	"strings"
+	"testing"
+	"text/tabwriter"
 )
 
 func TestLogReader_Tail(t *testing.T) {
@@ -18,8 +18,9 @@ func TestLogReader_Tail(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := logreader.NewLogReader(input, logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
-	logdisplay := NewLogDisplay(logReader)
+	logReader := logreader.NewLogReader(input, logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
+	logdisplay := NewLogDisplay(&logReader)
 	logdisplay.tail()
 	result := *logdisplay.currentPage
 
@@ -35,8 +36,9 @@ func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := logreader.NewLogReader(input, logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 2, ""})
-	logdisplay := NewLogDisplay(logReader)
+	logReader := logreader.NewLogReader(input, logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(2)
+	logdisplay := NewLogDisplay(&logReader)
 	logdisplay.tail()
 	result := logdisplay.currentPage
 
@@ -46,8 +48,8 @@ func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_positiveColumnSize(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 2, ""})
-	logdisplay := NewLogDisplay(logReader)
+	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logdisplay := NewLogDisplay(&logReader)
 	expected := "characters"
 	actual := logdisplay.formatColumnText("More than 10 characters", 1)
 
@@ -57,8 +59,8 @@ func TestLogDisplay_formatColumnText_positiveColumnSize(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_negativeColumnSize(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{-1, 10, 10}, 2, ""})
-	logdisplay := NewLogDisplay(logReader)
+	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{-1, 10, 10}})
+	logdisplay := NewLogDisplay(&logReader)
 	expected := "More than 10 characters"
 	actual := logdisplay.formatColumnText("More than 10 characters", 0)
 
@@ -68,8 +70,8 @@ func TestLogDisplay_formatColumnText_negativeColumnSize(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_zeroColumnSize(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{0, 10, 10}, 2, ""})
-	logdisplay := NewLogDisplay(logReader)
+	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{0, 10, 10}})
+	logdisplay := NewLogDisplay(&logReader)
 	expected := ""
 	actual := logdisplay.formatColumnText("More than 10 characters", 0)
 
@@ -79,8 +81,8 @@ func TestLogDisplay_formatColumnText_zeroColumnSize(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_testWhenColumnSizeIsLessThanConfiguredValue(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 10, 10}, 2, ""})
-	logdisplay := NewLogDisplay(logReader)
+	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 10, 10}})
+	logdisplay := NewLogDisplay(&logReader)
 	expected := "7 chars        "
 	actual := logdisplay.formatColumnText("7 chars", 0)
 
@@ -90,17 +92,17 @@ func TestLogDisplay_formatColumnText_testWhenColumnSizeIsLessThanConfiguredValue
 }
 
 func TestLogDisplay_writeHeader(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{3, 1, 10}, 2, ""})
+	logReader := logreader.NewLogReader("", logreader.Config{`~`, []string{"Date", "Thread", "Package"}, []int{3, 1, 10}})
 	var actual bytes.Buffer
 	expectedRegexp := "ate.*\\wd\\w.*Package\n"
 
-	logdisplay := NewLogDisplay(logReader)
+	logdisplay := NewLogDisplay(&logReader)
 	tabWriter := new(tabwriter.Writer)
 	tabWriter.Init(&actual, 0, 8, 0, '\t', tabwriter.AlignRight)
 	logdisplay.writeHeader(tabWriter)
 	tabWriter.Flush()
 
-	if match, _ := regexp.MatchString(expectedRegexp, strings.TrimSpace(actual.String())) ; match {
+	if match, _ := regexp.MatchString(expectedRegexp, strings.TrimSpace(actual.String())); match {
 		t.Errorf(`Output Log: Expected %s to match %s`, actual.String(), expectedRegexp)
 	}
 }
