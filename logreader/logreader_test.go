@@ -24,7 +24,8 @@ func TestLogReader_Tail(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	result := *logReader.Tail()
 
 	if !reflect.DeepEqual(result, expected) {
@@ -40,7 +41,8 @@ func TestLogReader_Head(t *testing.T) {
 		{"13/11/2010", "Thread-3", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	result := *logReader.Head()
 
@@ -57,7 +59,8 @@ func TestLogReader_PageUp(t *testing.T) {
 		{"15/11/2010", "Thread-5", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	result := *logReader.PageUp()
 
@@ -74,7 +77,8 @@ func TestLogReader_PageUp_untilBeginning(t *testing.T) {
 		{"13/11/2010", "Thread-3", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
 	logReader.PageUp()
@@ -97,7 +101,8 @@ func TestLogReader_PageDown(t *testing.T) {
 		{"16/11/2010", "Thread-6", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
 	logReader.PageUp()
@@ -116,7 +121,8 @@ func TestLogReader_PageDown_untilEnd(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageDown()
 	logReader.PageDown()
@@ -139,7 +145,8 @@ func TestLogReader_Down(t *testing.T) {
 		{"14/11/2010", "Thread-4", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
 	logReader.PageUp()
@@ -158,7 +165,8 @@ func TestLogReader_Down_shouldntGoBeyondEndOfFile(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
 	for i := 0; i < 20; i++ {
@@ -179,7 +187,8 @@ func TestLogReader_Up(t *testing.T) {
 		{"14/11/2010", "Thread-4", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
 	result := *logReader.Up()
@@ -197,7 +206,8 @@ func TestLogReader_Up_shouldntGoBeforeBeginningOfFile(t *testing.T) {
 		{"13/11/2010", "Thread-3", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
 	for i := 0; i < 20; i++ {
@@ -217,7 +227,8 @@ func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}, 2, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader.SetCapacity(2)
 	result := *logReader.Tail()
 
 	if !reflect.DeepEqual(result, expected) {
@@ -229,7 +240,8 @@ func TestLogReader_Headers(t *testing.T) {
 	input := "../test_logs/TestLogReader_Headers_input.log"
 	expected := []string{"Date", "Thread", "Package"}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 20, 10}, 3, ""})
+	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 20, 10}})
+	logReader.SetCapacity(3)
 	if !reflect.DeepEqual(logReader.GetHeaders(), expected) {
 		t.Errorf(`Output Log: Expected %s got %s`, expected, logReader.GetHeaders())
 	}
@@ -237,19 +249,11 @@ func TestLogReader_Headers(t *testing.T) {
 
 func TestLogReader_GetColumnSizes(t *testing.T) {
 	expected := []int{15, 20, 10}
-	logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package"}, expected, 3, ""})
+	logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package"}, expected})
+	logReader.SetCapacity(3)
 
 	if !reflect.DeepEqual(logReader.GetColumnSizes(), expected) {
 		t.Errorf(`Expected column-sizes config to match the value returned by GetColumnSizes, expected %s, got %s`, expected, logReader.GetColumnSizes())
-	}
-}
-
-func TestLogReader_GetSeverityColumnName(t *testing.T) {
-	expected := "Test"
-	logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package", "Test"}, []int{1, 2, 3, 4}, 3, "Test"})
-
-	if logReader.GetSeverityColumnName() != expected {
-		t.Errorf(`Expected column-sizes config to match the value returned by GetColumnSizes, expected %s, got %s`, expected, logReader.GetSeverityColumnName())
 	}
 }
 

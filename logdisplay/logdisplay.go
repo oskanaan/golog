@@ -81,6 +81,7 @@ func (l LogDisplay) DisplayStdout() {
 
 func (l LogDisplay) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
+	//Set the capacity based on the terminal size
 	l.logReader.SetCapacity(maxY - 3)
 	if v, err := g.SetView("main", 0, -1, maxX, maxY); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -124,7 +125,6 @@ func (l LogDisplay) writeHeader(writer *tabwriter.Writer) {
 
 //Writes the formatted current page of the log to a tabwriter
 func (l LogDisplay) writeBody(tabWriter *tabwriter.Writer) {
-	severityIndex := l.getSeverityColumnIndex()
 	for _, row := range *l.currentPage {
 		var rowText string
 		//If this is a stack trace or some debugging information then no parsing is needed, display as is
@@ -144,24 +144,8 @@ func (l LogDisplay) writeBody(tabWriter *tabwriter.Writer) {
 			continue
 		}
 
-		severity := ""
-		if len(row) > severityIndex {
-			severity = row[severityIndex]
-		}
-
-		fmt.Fprintln(tabWriter, colorizeLogEntry(rowText, severity))
+		fmt.Fprintln(tabWriter, colorizeLogEntry(rowText))
 	}
-}
-
-//Returns the index of the column which is configured as the severity column
-func (l LogDisplay) getSeverityColumnIndex() int {
-	for index, header := range l.logReader.GetHeaders() {
-		if header == l.logReader.GetSeverityColumnName() {
-			return index
-		}
-	}
-
-	return -1
 }
 
 //Returns the tail data based on the "capacity" configuration passed to the program
@@ -174,6 +158,9 @@ func (l *LogDisplay) tail() {
 //If the column size is negative, it will return the text as is.
 //If the text length is less than the column size, it adds some right padding to match the column size
 func (l LogDisplay) formatColumnText(text string, columnIndex int) string {
+	if columnIndex >= len(l.logReader.GetColumnSizes()) {
+		return text
+	}
 	configuredSize := l.logReader.GetColumnSizes()[columnIndex]
 	startIndex := len(text) - l.logReader.GetColumnSizes()[columnIndex]
 	formattedText := text
@@ -283,6 +270,7 @@ func hideLogEntryDetails(g *gocui.Gui, v *gocui.View) error {
 //Navigates to the beginning of the file
 //Returns an error if the main view cannot be found
 func (l *LogDisplay) home(g *gocui.Gui, v *gocui.View) error {
+	l.tailOn = &[]bool{false}[0]
 	g.Update(func(g *gocui.Gui) error {
 		v, err := g.View("main")
 		if err != nil {
@@ -310,7 +298,6 @@ func (l *LogDisplay) end(g *gocui.Gui, v *gocui.View) error {
 		l.currentPage = l.logReader.Tail()
 		v.Clear()
 		fmt.Fprintf(v, "%s", l.getFormattedLog())
-		//fmt.Fprintf(v, "%s", l.getFormattedLog())
 		return nil
 	})
 	l.tailOn = &[]bool{true}[0]
@@ -322,6 +309,7 @@ func (l *LogDisplay) end(g *gocui.Gui, v *gocui.View) error {
 //Navigates one page down where the page size equals the "capacity" configuration
 //Returns an error if the main view cannot be found
 func (l *LogDisplay) pageDown(g *gocui.Gui, v *gocui.View) error {
+	l.tailOn = &[]bool{false}[0]
 	g.Update(func(g *gocui.Gui) error {
 		v, err := g.View("main")
 		if err != nil {
