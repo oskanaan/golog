@@ -14,17 +14,26 @@ import (
 
 var wg sync.WaitGroup
 
+type LogDisplayConfig struct {
+	Severities []struct {
+		Severity string `yaml:"severity"`
+		Colors []interface{} `yaml:"colors"`
+	}
+}
+
 type LogDisplay struct {
 	logReader   *logreader.LogReader
 	currentPage *[][]string
 	tailOn      *bool
+	logdisplayConfig LogDisplayConfig
 }
 
 //Returns a new instance of a LogDisplay
-func NewLogDisplay(logReader *logreader.LogReader) LogDisplay {
+func NewLogDisplay(logReader *logreader.LogReader, logdisplayConfig LogDisplayConfig) LogDisplay {
 	var l LogDisplay
 	l.logReader = logReader
 	l.tailOn = &[]bool{true}[0]
+	l.logdisplayConfig = logdisplayConfig
 	return l
 }
 
@@ -121,7 +130,7 @@ func (l LogDisplay) writeHeader(writer *tabwriter.Writer) {
 			header = header + "\t"
 		}
 	}
-	fmt.Fprintln(writer, colorizeHeader(header))
+	fmt.Fprintln(writer, colorizeHeader(header, l.logdisplayConfig))
 }
 
 //Writes the formatted current page of the log to a tabwriter
@@ -145,7 +154,7 @@ func (l LogDisplay) writeBody(tabWriter *tabwriter.Writer) {
 			continue
 		}
 
-		fmt.Fprintln(tabWriter, colorizeLogEntry(rowText))
+		fmt.Fprintln(tabWriter, colorizeLogEntry(rowText, l.logdisplayConfig))
 	}
 }
 

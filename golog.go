@@ -11,27 +11,48 @@ import (
 
 func main() {
 	//Read command line arguments
-	confFile := flag.String("logconfig", "golog.yml", "Golog configuration file in yaml format")
+	confFile := flag.String("logconfig", "golog.yml", "Golog logReaderConfig file in yaml format")
 	file := flag.String("file", "", "Log file to view")
 	flag.Parse()
 
-	//Parse yaml config file
+	logReaderConfig := logreaderConfig(confFile)
+	logDisplayConfig := logdisplayConfig(confFile)
+
+	if *file == "" {
+		file = &logReaderConfig.LogFile
+	}
+
+	logReader := logreader.NewLogReader(*file, logReaderConfig)
+	logDisplay := logdisplay.NewLogDisplay(&logReader, logDisplayConfig)
+	logDisplay.DisplayUI()
+}
+
+func logreaderConfig(confFile *string) logreader.LogReaderConfig {
 	yamlFile, err := ioutil.ReadFile(*confFile)
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
 	}
 
-	var configuration logreader.LogConfig
+	var configuration logreader.LogReaderConfig
 	err = yaml.Unmarshal(yamlFile, &configuration)
 	if err != nil {
 		log.Fatalf("Unmarshal: %v", err)
 	}
 
-	if *file == "" {
-		file = &configuration.LogFile
+	return configuration
+}
+
+func logdisplayConfig(confFile *string) logdisplay.LogDisplayConfig {
+	yamlFile, err := ioutil.ReadFile(*confFile)
+	if err != nil {
+		log.Printf("yamlFile.Get err   #%v ", err)
 	}
 
-	logReader := logreader.NewLogReader(*file, configuration)
-	logDisplay := logdisplay.NewLogDisplay(&logReader)
-	logDisplay.DisplayUI()
+	var configuration logdisplay.LogDisplayConfig
+	err = yaml.Unmarshal(yamlFile, &configuration)
+	if err != nil {
+		log.Fatalf("Unmarshal: %v", err)
+	}
+
+	return configuration
 }

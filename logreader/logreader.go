@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-type LogConfig struct {
+type LogReaderConfig struct {
 	LogFile string `yaml:"file"`
 	Seperator string `yaml:"seperator"`
 	Headers []struct {
@@ -16,12 +16,12 @@ type LogConfig struct {
 
 type LogReader struct {
 	input         string
-	config        LogConfig
+	config        LogReaderConfig
 	currentOffset int
 	Capacity      int
 }
 
-func NewLogReader(input string, config LogConfig) LogReader {
+func NewLogReader(input string, config LogReaderConfig) LogReader {
 	var l LogReader
 	l.input = input
 	l.config = config
