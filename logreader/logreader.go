@@ -155,7 +155,7 @@ func (l *LogReader) Message(lineNum int) string {
 //Reads N (N=capacity) lines starting from the offset
 //Returns a two dimensional array containing the parsed columns and the new offset
 func readLogFileFromOffset(file *os.File, delim string, capacity int, offset int) (*[][]string, int) {
-	data, offset := readFileFromEnd(file, capacity, offset)
+	data, offset := readLinesStartingFromPosition(file, capacity, offset)
 	rows := [][]string{}
 	if len(data) == 0 {
 		return &rows, 0

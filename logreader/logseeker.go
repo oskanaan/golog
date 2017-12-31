@@ -20,7 +20,7 @@ const (
 //Reads a maximum of "capacity" number of lines starting from the offset position
 //from the end of the file.
 //Returns a slice containing a maximum of "capacity" entries and the current position.
-func readFileFromEnd(file *os.File, capacity, lineNumber int) ([]string, int) {
+func readLinesStartingFromPosition(file *os.File, capacity, lineNumber int) ([]string, int) {
 	rows := make([]string, 0)
 	linesRead := 0
 	currentPosition := lineNumber
@@ -49,13 +49,13 @@ func readFileFromEnd(file *os.File, capacity, lineNumber int) ([]string, int) {
 //Returns a slice containing the retrieved rows and the new offset
 func tail(file *os.File, capacity int) ([]string, int) {
 	fileLineCount, _ := getLineCount(file)
-	return readFileFromEnd(file, capacity, fileLineCount+1)
+	return readLinesStartingFromPosition(file, capacity, fileLineCount+1)
 }
 
 //A convenience method to head a file
 //Returns a slice containing the retrieved rows and the new offset
 func head(file *os.File, capacity int) ([]string, int) {
-	return readFileFromEnd(file, capacity, 0)
+	return readLinesStartingFromPosition(file, capacity, 0)
 }
 
 //Retrieves the previous line starting from the current position
