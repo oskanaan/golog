@@ -2,37 +2,36 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"github.com/oskanaan/golog/logdisplay"
+	"io/ioutil"
+	"log"
+	"gopkg.in/yaml.v2"
 	"github.com/oskanaan/golog/logreader"
-	"strconv"
-	"strings"
-	"syscall"
+	"github.com/oskanaan/golog/logdisplay"
 )
 
 func main() {
 	//Read command line arguments
-	file := flag.String("file", "test.log", "Log file to view")
-	seperator := flag.String("seperator", "~", "Log column seperator")
-	headersString := flag.String("headers", "", "Comma seperated log columns header labels")
-	columnSizesString := flag.String("column-sizes", "", "Comma seperated list of columns sizes in characters")
+	confFile := flag.String("logconfig", "golog.yml", "Golog configuration file in yaml format")
+	file := flag.String("file", "", "Log file to view")
 	flag.Parse()
 
-	headers := strings.Split(*headersString, ",")
-	columnSizes := func() []int {
-		var sizes []int
-		for _, val := range strings.Split(*columnSizesString, ",") {
-			i, err := strconv.ParseInt(val, 10, 32)
-			if err != nil {
-				fmt.Printf("Could not parse column size %s to number\n", val)
-				syscall.Exit(1)
-			}
-			sizes = append(sizes, int(i))
-		}
-		return sizes
-	}()
+	//Parse yaml config file
+	yamlFile, err := ioutil.ReadFile(*confFile)
+	if err != nil {
+		log.Printf("yamlFile.Get err   #%v ", err)
+	}
 
-	logReader := logreader.NewLogReader(*file, logreader.Config{*seperator, headers, columnSizes})
+	var configuration logreader.LogConfig
+	err = yaml.Unmarshal(yamlFile, &configuration)
+	if err != nil {
+		log.Fatalf("Unmarshal: %v", err)
+	}
+
+	if *file == "" {
+		file = &configuration.LogFile
+	}
+
+	logReader := logreader.NewLogReader(*file, configuration)
 	logDisplay := logdisplay.NewLogDisplay(&logReader)
 	logDisplay.DisplayUI()
 }

@@ -2,14 +2,11 @@ package logdisplay
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 )
 
-const err = "Error"
-const warn = "Warn"
-const info = "Info"
-const trace = "Trace"
-const debug = "Debug"
+var severity = []string {"ERROR", "WARN", "INFO", "TRACE", "DEBUG"}
+var colorCodes = [][]interface{} {{1,1}, {3,1}, {2,1}, {6,5}, {0,1}}
 
 //prepends/appends the header color to the log headers
 //Returns a color coded string
@@ -21,24 +18,22 @@ func colorizeHeader(header string) string {
 //Returns a color coded string
 //Todo: make the colors and severity values configurable
 func colorizeLogEntry(logEntry string) string {
-	var pre string
-	if caseInsensitiveContains(logEntry, err) {
-		pre = fmt.Sprintf("\033[3%d;%d;1m", 1, 1)
-	} else if caseInsensitiveContains(logEntry, warn) {
-		pre = fmt.Sprintf("\033[3%d;%d;1m", 3, 1)
-	} else if caseInsensitiveContains(logEntry, debug) {
-		pre = fmt.Sprintf("\033[3%d;%d;1m", 2, 1)
-	} else if caseInsensitiveContains(logEntry, info) {
-		pre = fmt.Sprintf("\033[3%d;%d;1m", 6, 5)
-	} else if caseInsensitiveContains(logEntry, trace) {
-		pre = fmt.Sprintf("\033[3%d;%d;1m", 0, 1)
-	} else {
-		pre = fmt.Sprintf("\033[3%d;%d;1m", 0, 1)
-	}
+	colorCode := severityColorCode(logEntry)
+	pre := fmt.Sprintf("\033[3%d;%d;1m", colorCode...)
 	return fmt.Sprint(pre, logEntry, "\033[0m")
 }
 
-func caseInsensitiveContains(s, substr string) bool {
-	s, substr = strings.ToUpper(s), strings.ToUpper(substr)
-	return strings.Contains(s, substr)
+func severityColorCode(entry string) []interface{} {
+	for index, sev := range severity {
+		if severityMatch(entry, sev) {
+			return colorCodes[index]
+		}
+	}
+
+	return colorCodes[len(colorCodes) - 1]
+}
+
+func severityMatch(s, substr string) bool {
+	match, _ := regexp.MatchString(fmt.Sprintf("\\b%s\\b", substr), s)
+	return match
 }

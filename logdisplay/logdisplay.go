@@ -75,6 +75,7 @@ func (l *LogDisplay) DisplayUI() {
 
 //Prints the log to the stdout, used for debugging purposes only
 func (l LogDisplay) DisplayStdout() {
+	l.logReader.SetCapacity(50)
 	l.tail()
 	fmt.Print(l.getFormattedLog())
 }

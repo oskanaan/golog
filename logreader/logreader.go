@@ -5,21 +5,23 @@ import (
 	"strings"
 )
 
+type LogConfig struct {
+	LogFile string `yaml:"file"`
+	Seperator string `yaml:"seperator"`
+	Headers []struct {
+		Header string `yaml:"header"`
+		Size int `yaml:"size"`
+	}
+}
+
 type LogReader struct {
 	input         string
-	config        Config
+	config        LogConfig
 	currentOffset int
 	Capacity      int
 }
 
-//Config is used to configure the behaviour of the log reader
-type Config struct {
-	Delim          string
-	Headers        []string
-	ColumnSizes    []int
-}
-
-func NewLogReader(input string, config Config) LogReader {
+func NewLogReader(input string, config LogConfig) LogReader {
 	var l LogReader
 	l.input = input
 	l.config = config
@@ -36,7 +38,7 @@ func (l *LogReader) Tail() *[][]string {
 	data, offset := tail(file, l.Capacity)
 	rows := [][]string{}
 	for _, line := range data {
-		rows = append(rows, parseLine(line, l.config.Delim))
+		rows = append(rows, parseLine(line, l.config.Seperator))
 	}
 
 	l.currentOffset = offset
@@ -52,7 +54,7 @@ func (l *LogReader) Head() *[][]string {
 	data, offset := head(file, l.Capacity)
 	rows := [][]string{}
 	for _, line := range data {
-		rows = append(rows, parseLine(line, l.config.Delim))
+		rows = append(rows, parseLine(line, l.config.Seperator))
 	}
 
 	l.currentOffset = offset
@@ -65,7 +67,7 @@ func (l *LogReader) PageUp() *[][]string {
 	file, _ := os.Open(l.input)
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Delim, l.Capacity, l.currentOffset)
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset)
 	l.currentOffset = offset
 	return data
 }
@@ -76,7 +78,7 @@ func (l *LogReader) PageDown() *[][]string {
 	file, _ := os.Open(l.input)
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Delim, l.Capacity, l.currentOffset+(l.Capacity*2))
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset+(l.Capacity*2))
 	l.currentOffset = offset
 	return data
 }
@@ -87,7 +89,7 @@ func (l *LogReader) Up() *[][]string {
 	file, _ := os.Open(l.input)
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Delim, l.Capacity, l.currentOffset+l.Capacity-1)
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset+l.Capacity-1)
 	l.currentOffset = offset
 	return data
 }
@@ -98,7 +100,7 @@ func (l *LogReader) Down() *[][]string {
 	file, _ := os.Open(l.input)
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Delim, l.Capacity, l.currentOffset+l.Capacity+1)
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset+l.Capacity+1)
 	l.currentOffset = offset
 	return data
 }
@@ -126,12 +128,20 @@ func parseLine(line string, delim string) []string {
 
 //Gets a slice of strings representing the headers of the log
 func (l LogReader) GetHeaders() []string {
-	return l.config.Headers
+	headers := make([]string, len(l.config.Headers))
+	for index, header := range l.config.Headers {
+		headers[index] = header.Header
+	}
+	return headers
 }
 
 //Gets a slice of strings representing the headers of the log
 func (l LogReader) GetColumnSizes() []int {
-	return l.config.ColumnSizes
+	sizes := make([]int, len(l.config.Headers))
+	for index, header := range l.config.Headers {
+		sizes[index] = header.Size
+	}
+	return sizes
 }
 
 //Sets the number of rows to display capacity
@@ -144,9 +154,9 @@ func (l *LogReader) Message(lineNum int) string {
 	defer file.Close()
 
 	message, _, _ := readLine(file, lineNum+l.currentOffset-1)
-	if !strings.Contains(message, l.config.Delim) {
+	if !strings.Contains(message, l.config.Seperator) {
 		file.Seek(0, 0)
-		message = stackTrace(file, lineNum+l.currentOffset-1, l.config.Delim)
+		message = stackTrace(file, lineNum+l.currentOffset-1, l.config.Seperator)
 	}
 
 	return message
