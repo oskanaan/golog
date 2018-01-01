@@ -8,10 +8,12 @@ import (
 type LogReaderConfig struct {
 	LogFile string `yaml:"file"`
 	Seperator string `yaml:"seperator"`
-	Headers []struct {
-		Header string `yaml:"header"`
-		Size int `yaml:"size"`
-	}
+	Headers []Header
+}
+
+type Header struct {
+	Header string `yaml:"header"`
+	Size int `yaml:"size"`
 }
 
 type LogReader struct {

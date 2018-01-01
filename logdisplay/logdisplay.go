@@ -15,10 +15,12 @@ import (
 var wg sync.WaitGroup
 
 type LogDisplayConfig struct {
-	Severities []struct {
-		Severity string `yaml:"severity"`
-		Colors []interface{} `yaml:"colors"`
-	}
+	Severities []Severity
+}
+
+type Severity struct {
+	Severity string `yaml:"severity"`
+	Colors []interface{} `yaml:"colors"`
 }
 
 type LogDisplay struct {

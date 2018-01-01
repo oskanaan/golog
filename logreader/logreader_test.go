@@ -5,6 +5,18 @@ import (
 	"testing"
 )
 
+func logreaderConfig(sizes []int) LogReaderConfig{
+	return LogReaderConfig{
+		LogFile: "",
+		Seperator: "~",
+		Headers: []Header{
+			{"Date", sizes[0]},
+			{"Thread", sizes[1]},
+			{"Package", sizes[2]},
+		},
+	}
+}
+
 func TestLogReader_parseLine(t *testing.T) {
 	actual := "Test~Log~entry"
 	expected := []string{"Test", "Log", "entry"}
@@ -24,7 +36,7 @@ func TestLogReader_Tail(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	result := *logReader.Tail()
 
@@ -41,7 +53,7 @@ func TestLogReader_Head(t *testing.T) {
 		{"13/11/2010", "Thread-3", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	result := *logReader.Head()
@@ -59,7 +71,7 @@ func TestLogReader_PageUp(t *testing.T) {
 		{"15/11/2010", "Thread-5", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	result := *logReader.PageUp()
@@ -77,7 +89,7 @@ func TestLogReader_PageUp_untilBeginning(t *testing.T) {
 		{"13/11/2010", "Thread-3", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
@@ -101,7 +113,7 @@ func TestLogReader_PageDown(t *testing.T) {
 		{"16/11/2010", "Thread-6", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
@@ -121,7 +133,7 @@ func TestLogReader_PageDown_untilEnd(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageDown()
@@ -145,7 +157,7 @@ func TestLogReader_Down(t *testing.T) {
 		{"14/11/2010", "Thread-4", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
@@ -165,7 +177,7 @@ func TestLogReader_Down_shouldntGoBeyondEndOfFile(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
@@ -187,7 +199,7 @@ func TestLogReader_Up(t *testing.T) {
 		{"14/11/2010", "Thread-4", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
@@ -206,7 +218,7 @@ func TestLogReader_Up_shouldntGoBeforeBeginningOfFile(t *testing.T) {
 		{"13/11/2010", "Thread-3", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logReader.Tail()
 	logReader.PageUp()
@@ -227,7 +239,7 @@ func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{10, 10, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(2)
 	result := *logReader.Tail()
 
@@ -240,7 +252,7 @@ func TestLogReader_Headers(t *testing.T) {
 	input := "../test_logs/TestLogReader_Headers_input.log"
 	expected := []string{"Date", "Thread", "Package"}
 
-	logReader := NewLogReader(input, Config{`~`, []string{"Date", "Thread", "Package"}, []int{15, 20, 10}})
+	logReader := NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	if !reflect.DeepEqual(logReader.GetHeaders(), expected) {
 		t.Errorf(`Output Log: Expected %s got %s`, expected, logReader.GetHeaders())
@@ -249,7 +261,7 @@ func TestLogReader_Headers(t *testing.T) {
 
 func TestLogReader_GetColumnSizes(t *testing.T) {
 	expected := []int{15, 20, 10}
-	logReader := NewLogReader("", Config{`~`, []string{"Date", "Thread", "Package"}, expected})
+	logReader := NewLogReader("", logreaderConfig(expected))
 	logReader.SetCapacity(3)
 
 	if !reflect.DeepEqual(logReader.GetColumnSizes(), expected) {
