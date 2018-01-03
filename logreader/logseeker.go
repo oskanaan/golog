@@ -10,15 +10,7 @@ import (
 
 const readBufSize = 5120
 
-const (
-	beginning = iota
-	middle
-	end
-	ignore
-)
-
 //Reads a maximum of "capacity" number of lines starting from the offset position
-//from the end of the file.
 //Returns a slice containing a maximum of "capacity" entries and the current position.
 func readLinesStartingFromPosition(file *os.File, capacity, lineNumber int) ([]string, int) {
 	rows := make([]string, 0)
@@ -29,7 +21,7 @@ func readLinesStartingFromPosition(file *os.File, capacity, lineNumber int) ([]s
 		if currentPosition <= capacity && linesRead == 0 {
 			currentPosition = capacity + 1
 		}
-		line, _ := getPreviousLine(file, currentPosition)
+		line := getPreviousLine(file, currentPosition)
 		currentPosition--
 
 		if line == "" {
@@ -60,16 +52,16 @@ func head(file *os.File, capacity int) ([]string, int) {
 
 //Retrieves the previous line starting from the current position
 //Returns a the previous line and the new offset
-func getPreviousLine(file *os.File, currentPosition int) (string, int) {
+func getPreviousLine(file *os.File, currentPosition int) string {
 	previousLineNumber := currentPosition - 1
 	if previousLineNumber < 0 {
-		return "", beginning
+		return ""
 	}
 
 	file.Seek(0, 0)
 	line, _, _ := readLine(file, previousLineNumber)
 
-	return line, middle
+	return line
 }
 
 //Counts the total number of lines within a file

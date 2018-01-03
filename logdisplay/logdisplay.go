@@ -10,9 +10,12 @@ import (
 	"sync"
 	"text/tabwriter"
 	"time"
+	"github.com/atotto/clipboard"
 )
 
 var wg sync.WaitGroup
+const detailsView = "details"
+const mainView = "mainView"
 
 type LogDisplayConfig struct {
 	Severities []Severity
@@ -62,7 +65,7 @@ func (l *LogDisplay) DisplayUI() {
 			if *l.tailOn {
 
 				g.Update(func(g *gocui.Gui) error {
-					v, err := g.View("main")
+					v, err := g.View(mainView)
 					if err != nil {
 						return err
 					}
@@ -95,14 +98,14 @@ func (l LogDisplay) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	//Set the capacity based on the terminal size
 	l.logReader.SetCapacity(maxY - 3)
-	if v, err := g.SetView("main", 0, -1, maxX, maxY); err != nil {
+	if v, err := g.SetView(mainView, 0, -1, maxX, maxY); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		fmt.Fprintf(v, "%s", l.getFormattedLog())
 		v.Editable = false
 		v.Wrap = false
-		if _, err := g.SetCurrentView("main"); err != nil {
+		if _, err := g.SetCurrentView(mainView); err != nil {
 			return err
 		}
 	}
@@ -208,35 +211,35 @@ func (l *LogDisplay) keybindings(g *gocui.Gui) error {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.MouseLeft, gocui.ModNone, l.showLogEntryDetails); err != nil {
+	if err := g.SetKeybinding(mainView, gocui.MouseLeft, gocui.ModNone, l.showLogEntryDetails); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("msg", gocui.MouseLeft, gocui.ModNone, hideLogEntryDetails); err != nil {
+	if err := g.SetKeybinding(detailsView, gocui.MouseRight, gocui.ModNone, hideLogEntryDetails); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyPgdn, gocui.ModNone, l.pageDown); err != nil {
+	if err := g.SetKeybinding(mainView, gocui.KeyPgdn, gocui.ModNone, l.pageDown); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyPgup, gocui.ModNone, l.pageUp); err != nil {
+	if err := g.SetKeybinding(mainView, gocui.KeyPgup, gocui.ModNone, l.pageUp); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyArrowUp, gocui.ModNone, l.arrowUp); err != nil {
+	if err := g.SetKeybinding(mainView, gocui.KeyArrowUp, gocui.ModNone, l.arrowUp); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyArrowDown, gocui.ModNone, l.arrowDown); err != nil {
+	if err := g.SetKeybinding(mainView, gocui.KeyArrowDown, gocui.ModNone, l.arrowDown); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyHome, gocui.ModNone, l.home); err != nil {
+	if err := g.SetKeybinding(mainView, gocui.KeyHome, gocui.ModNone, l.home); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyEnd, gocui.ModNone, l.end); err != nil {
+	if err := g.SetKeybinding(mainView, gocui.KeyEnd, gocui.ModNone, l.end); err != nil {
 		return err
 	}
 
@@ -250,7 +253,7 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 //Shows the full details of the log entry in a popup window
-//Returns an error if the "msg" view cannot be found
+//Returns an error if the detailsView view cannot be found
 func (l LogDisplay) showLogEntryDetails(g *gocui.Gui, v *gocui.View) error {
 	if _, err := g.SetCurrentView(v.Name()); err != nil {
 		return err
@@ -258,22 +261,28 @@ func (l LogDisplay) showLogEntryDetails(g *gocui.Gui, v *gocui.View) error {
 
 	_, lineNum := v.Cursor()
 	message := l.logReader.Message(lineNum)
+	//Write to clipboard
+	clipboard.WriteAll(message)
 
 	maxX, maxY := g.Size()
-	if v, err := g.SetView("msg", 5, 5, maxX-5, maxY-5); err != nil {
+	if v, err := g.SetView(detailsView, 5, 5, maxX-5, maxY-5); err != nil {
 		v.Wrap = true
+		v.Editable = true
+
+		v.Title = "Line details"
 		if err != gocui.ErrUnknownView {
 			return err
 		}
+
 		fmt.Fprintln(v, message)
 	}
 	return nil
 }
 
 //Hides the log entry details popup
-//Returns an error if the "msg" view cannot be found
+//Returns an error if the detailsView view cannot be found
 func hideLogEntryDetails(g *gocui.Gui, v *gocui.View) error {
-	if err := g.DeleteView("msg"); err != nil {
+	if err := g.DeleteView(detailsView); err != nil {
 		return err
 	}
 	return nil
@@ -284,7 +293,7 @@ func hideLogEntryDetails(g *gocui.Gui, v *gocui.View) error {
 func (l *LogDisplay) home(g *gocui.Gui, v *gocui.View) error {
 	l.tailOn = &[]bool{false}[0]
 	g.Update(func(g *gocui.Gui) error {
-		v, err := g.View("main")
+		v, err := g.View(mainView)
 		if err != nil {
 			return err
 		}
@@ -303,7 +312,7 @@ func (l *LogDisplay) home(g *gocui.Gui, v *gocui.View) error {
 //Returns an error if the main view cannot be found
 func (l *LogDisplay) end(g *gocui.Gui, v *gocui.View) error {
 	g.Update(func(g *gocui.Gui) error {
-		v, err := g.View("main")
+		v, err := g.View(mainView)
 		if err != nil {
 			return err
 		}
@@ -323,7 +332,7 @@ func (l *LogDisplay) end(g *gocui.Gui, v *gocui.View) error {
 func (l *LogDisplay) pageDown(g *gocui.Gui, v *gocui.View) error {
 	l.tailOn = &[]bool{false}[0]
 	g.Update(func(g *gocui.Gui) error {
-		v, err := g.View("main")
+		v, err := g.View(mainView)
 		if err != nil {
 			return err
 		}
@@ -343,7 +352,7 @@ func (l *LogDisplay) pageUp(g *gocui.Gui, v *gocui.View) error {
 	l.tailOn = &[]bool{false}[0]
 
 	g.Update(func(g *gocui.Gui) error {
-		v, err := g.View("main")
+		v, err := g.View(mainView)
 		if err != nil {
 			return err
 		}
@@ -360,7 +369,7 @@ func (l *LogDisplay) pageUp(g *gocui.Gui, v *gocui.View) error {
 //Returns an error if the main view cannot be found
 func (l *LogDisplay) arrowDown(g *gocui.Gui, v *gocui.View) error {
 	g.Update(func(g *gocui.Gui) error {
-		v, err := g.View("main")
+		v, err := g.View(mainView)
 		if err != nil {
 			return err
 		}
@@ -381,7 +390,7 @@ func (l *LogDisplay) arrowUp(g *gocui.Gui, v *gocui.View) error {
 	l.tailOn = &[]bool{false}[0]
 
 	g.Update(func(g *gocui.Gui) error {
-		v, err := g.View("main")
+		v, err := g.View(mainView)
 		if err != nil {
 			return err
 		}
