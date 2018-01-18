@@ -3,12 +3,13 @@ package logreader
 import (
 	"os"
 	"strings"
+	"bufio"
 )
 
 type LogReaderConfig struct {
-	LogFile string `yaml:"file"`
-	Seperator string `yaml:"seperator"`
-	Headers []Header
+	Files     []LogFile `yaml:files`
+	Seperator string    `yaml:"seperator"`
+	Headers   []Header
 }
 
 type Header struct {
@@ -16,25 +17,42 @@ type Header struct {
 	Size int `yaml:"size"`
 }
 
+type LogFile struct {
+	LogFile string `yaml:"file"`
+	Name    string `yaml:"name"`
+}
+
 type LogReader struct {
-	input         string
+	FileIndex     int
 	config        LogReaderConfig
-	currentOffset int
+	currentOffset []int
 	Capacity      int
 }
 
-func NewLogReader(input string, config LogReaderConfig) LogReader {
+func NewLogReader(config LogReaderConfig) LogReader {
 	var l LogReader
-	l.input = input
 	l.config = config
+	l.currentOffset = make([]int, len(l.config.Files))
 
 	return l
 }
 
+//Reads the log file from the current offset
+//Returns a two dimensional slice containing the parsed rows
+func (l *LogReader) Refresh() *[][]string {
+	file, _ := l.openLogFile()
+	defer file.Close()
+
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset[l.FileIndex] + l.Capacity)
+	l.currentOffset[l.FileIndex] = offset
+	return data
+}
+
+
 //Reads the last N lines where N=The capacity configuration value
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) Tail() *[][]string {
-	file, _ := os.Open(l.input)
+	file, _ := l.openLogFile()
 	defer file.Close()
 
 	data, offset := tail(file, l.Capacity)
@@ -43,14 +61,14 @@ func (l *LogReader) Tail() *[][]string {
 		rows = append(rows, parseLine(line, l.config.Seperator))
 	}
 
-	l.currentOffset = offset
+	l.currentOffset[l.FileIndex] = offset
 	return &rows
 }
 
 //Reads the first N lines where N=The capacity configuration value
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) Head() *[][]string {
-	file, _ := os.Open(l.input)
+	file, _ := l.openLogFile()
 	defer file.Close()
 
 	data, offset := head(file, l.Capacity)
@@ -59,52 +77,76 @@ func (l *LogReader) Head() *[][]string {
 		rows = append(rows, parseLine(line, l.config.Seperator))
 	}
 
-	l.currentOffset = offset
+	l.currentOffset[l.FileIndex] = offset
 	return &rows
 }
 
 //Reads the last N lines where N=The capacity configuration value starting from the current offset excluding the last page
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) PageUp() *[][]string {
-	file, _ := os.Open(l.input)
+	file, _ := l.openLogFile()
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset)
-	l.currentOffset = offset
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset[l.FileIndex])
+	l.currentOffset[l.FileIndex] = offset
 	return data
 }
 
 //Reads the last N lines where N=The capacity configuration value starting from the first line after the current page
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) PageDown() *[][]string {
-	file, _ := os.Open(l.input)
+	file, _ := l.openLogFile()
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset+(l.Capacity*2))
-	l.currentOffset = offset
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset[l.FileIndex]+(l.Capacity*2))
+	l.currentOffset[l.FileIndex] = offset
 	return data
 }
 
 //Reads the last N lines where N=The capacity configuration value starting from the current offset excluding the last line
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) Up() *[][]string {
-	file, _ := os.Open(l.input)
+	file, _ := l.openLogFile()
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset+l.Capacity-1)
-	l.currentOffset = offset
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset[l.FileIndex]+l.Capacity-1)
+	l.currentOffset[l.FileIndex] = offset
 	return data
 }
 
 //Reads the last N lines where N=The capacity configuration value starting from the current line + 1
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) Down() *[][]string {
-	file, _ := os.Open(l.input)
+	file, _ := l.openLogFile()
 	defer file.Close()
 
-	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset+l.Capacity+1)
-	l.currentOffset = offset
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, l.currentOffset[l.FileIndex]+l.Capacity+1)
+	l.currentOffset[l.FileIndex] = offset
 	return data
+}
+
+//Search the log file for a search term
+//Returns a two dimensional slice containing the parsed rows for the location containing the search term and the location within the result
+func (l *LogReader) Search(searchTerm string, currentLocation int) (*[][]string, int) {
+	file, _ := l.openLogFile()
+	defer file.Close()
+
+	searchOffset := l.currentOffset[l.FileIndex] + currentLocation + 1
+	location := searchFileForTerm(file, searchTerm, searchOffset)
+	if location == -1 {
+		file.Seek(0, 0)
+		location = searchFileForTerm(file, searchTerm, 0)
+	}
+	startFromLocation := location+l.Capacity
+	data, offset := readLogFileFromOffset(file, l.config.Seperator, l.Capacity, startFromLocation)
+	l.currentOffset[l.FileIndex] = offset
+	fileSize, _ := getLineCount(file)
+	resultLocationInCurrentPage := 0
+	if startFromLocation > fileSize {
+		resultLocationInCurrentPage += startFromLocation - fileSize
+	}
+
+	return data, resultLocationInCurrentPage
 }
 
 func countLines(lines string) int {
@@ -152,16 +194,25 @@ func (l *LogReader) SetCapacity(capacity int) {
 }
 
 func (l *LogReader) Message(lineNum int) string {
-	file, _ := os.Open(l.input)
+	file, _ := l.openLogFile()
 	defer file.Close()
 
-	message, _, _ := readLine(file, lineNum+l.currentOffset-1)
+	message, _, _ := readLine(file, lineNum+l.currentOffset[l.FileIndex]-1)
 	if !strings.Contains(message, l.config.Seperator) {
 		file.Seek(0, 0)
-		message = stackTrace(file, lineNum+l.currentOffset-1, l.config.Seperator)
+		message = stackTrace(file, lineNum+l.currentOffset[l.FileIndex]-1, l.config.Seperator)
 	}
 
 	return message
+}
+
+func (l *LogReader) Progress() int {
+	file, _ := l.openLogFile()
+	defer file.Close()
+	lineCount, _ := getLineCount(file)
+
+	percentage := int(float32(l.currentOffset[l.FileIndex] + l.Capacity - 1)/float32(lineCount) * 100)
+	return percentage
 }
 
 //Reads N (N=capacity) lines starting from the offset
@@ -177,4 +228,21 @@ func readLogFileFromOffset(file *os.File, delim string, capacity int, offset int
 	}
 
 	return &rows, offset
+}
+
+func searchFileForTerm(f *os.File, searchTerm string, currentLocation int) int{
+	scanner := bufio.NewScanner(f)
+	line := 1
+	for scanner.Scan() {
+		if line > currentLocation && strings.Contains(strings.ToLower(scanner.Text()), strings.ToLower(searchTerm)) {
+			return line
+		}
+		line++
+	}
+
+	return -1
+}
+
+func (l LogReader) openLogFile() (*os.File, error) {
+	return os.Open(l.config.Files[l.FileIndex].LogFile)
 }

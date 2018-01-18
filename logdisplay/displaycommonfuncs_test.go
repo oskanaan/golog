@@ -2,9 +2,9 @@ package logdisplay
 
 import "github.com/oskanaan/golog/logreader"
 
-func logreaderConfig(sizes []int) logreader.LogReaderConfig{
+func logreaderConfig(file string, sizes []int) logreader.LogReaderConfig{
 	return logreader.LogReaderConfig{
-		LogFile: "",
+		Files: []logreader.LogFile{{file, "Name"}},
 		Seperator: "~",
 		Headers: []logreader.Header{
 			{"Date", sizes[0]},
@@ -14,8 +14,8 @@ func logreaderConfig(sizes []int) logreader.LogReaderConfig{
 	}
 }
 
-func logdisplayConfig() LogDisplayConfig{
-	return LogDisplayConfig{
+func logdisplayConfig() *LogDisplayConfig{
+	return &LogDisplayConfig{
 		Severities: []Severity {
 			{`\bERROR\b`, []interface{}{1, 1}},
 			{`\bWARN\b`, []interface{}{3, 1}},

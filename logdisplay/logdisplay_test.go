@@ -11,14 +11,13 @@ import (
 )
 
 func TestLogReader_Tail(t *testing.T) {
-	input := "../test_logs/TestLogDisplay_Tail_input.log"
 	expected := [][]string{
 		{"16/11/2010", "Thread-6", "com.test"},
 		{"17/11/2010", "Thread-7", "com.test"},
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := logreader.NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
+	logReader := logreader.NewLogReader(logreaderConfig("../test_logs/TestLogDisplay_Tail_input.log", []int{10, 10, 10}))
 	logReader.SetCapacity(3)
 	logdisplay := NewLogDisplay(&logReader, logdisplayConfig())
 	logdisplay.tail()
@@ -30,13 +29,12 @@ func TestLogReader_Tail(t *testing.T) {
 }
 
 func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
-	input := "../test_logs/TestLogDisplay_Tail_input.log"
 	expected := [][]string{
 		{"17/11/2010", "Thread-7", "com.test"},
 		{"18/11/2010", "Thread-8", "com.test"},
 	}
 
-	logReader := logreader.NewLogReader(input, logreaderConfig([]int{10, 10, 10}))
+	logReader := logreader.NewLogReader(logreaderConfig("../test_logs/TestLogDisplay_Tail_input.log", []int{10, 10, 10}))
 	logReader.SetCapacity(2)
 	logdisplay := NewLogDisplay(&logReader, logdisplayConfig())
 	logdisplay.tail()
@@ -48,7 +46,7 @@ func TestLogReader_Tail_3LinesLog_WithCapacitySizeEquals2(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_positiveColumnSize(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreaderConfig([]int{10, 10, 10}))
+	logReader := logreader.NewLogReader(logreaderConfig("", []int{10, 10, 10}))
 	logdisplay := NewLogDisplay(&logReader, logdisplayConfig())
 	expected := "characters"
 	actual := logdisplay.formatColumnText("More than 10 characters", 1)
@@ -59,7 +57,7 @@ func TestLogDisplay_formatColumnText_positiveColumnSize(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_negativeColumnSize(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreaderConfig([]int{-1, 10, 10}))
+	logReader := logreader.NewLogReader(logreaderConfig("", []int{-1, 10, 10}))
 	logdisplay := NewLogDisplay(&logReader, logdisplayConfig())
 	expected := "More than 10 characters"
 	actual := logdisplay.formatColumnText("More than 10 characters", 0)
@@ -70,7 +68,7 @@ func TestLogDisplay_formatColumnText_negativeColumnSize(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_zeroColumnSize(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreaderConfig([]int{0, 10, 10}))
+	logReader := logreader.NewLogReader(logreaderConfig("", []int{0, 10, 10}))
 	logdisplay := NewLogDisplay(&logReader, logdisplayConfig())
 	expected := ""
 	actual := logdisplay.formatColumnText("More than 10 characters", 0)
@@ -81,7 +79,7 @@ func TestLogDisplay_formatColumnText_zeroColumnSize(t *testing.T) {
 }
 
 func TestLogDisplay_formatColumnText_testWhenColumnSizeIsLessThanConfiguredValue(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreaderConfig([]int{15, 10, 10}))
+	logReader := logreader.NewLogReader(logreaderConfig("", []int{15, 10, 10}))
 	logdisplay := NewLogDisplay(&logReader, logdisplayConfig())
 	expected := "7 chars        "
 	actual := logdisplay.formatColumnText("7 chars", 0)
@@ -92,7 +90,7 @@ func TestLogDisplay_formatColumnText_testWhenColumnSizeIsLessThanConfiguredValue
 }
 
 func TestLogDisplay_writeHeader(t *testing.T) {
-	logReader := logreader.NewLogReader("", logreaderConfig([]int{10, 10, 10}))
+	logReader := logreader.NewLogReader(logreaderConfig("", []int{10, 10, 10}))
 	var actual bytes.Buffer
 	expectedRegexp := "ate.*\\wd\\w.*Package\n"
 

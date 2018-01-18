@@ -12,18 +12,13 @@ import (
 func main() {
 	//Read command line arguments
 	confFile := flag.String("logconfig", "golog.yml", "Golog logReaderConfig file in yaml format")
-	file := flag.String("file", "", "Log file to view")
 	flag.Parse()
 
 	logReaderConfig := logreaderConfig(confFile)
 	logDisplayConfig := logdisplayConfig(confFile)
 
-	if *file == "" {
-		file = &logReaderConfig.LogFile
-	}
-
-	logReader := logreader.NewLogReader(*file, logReaderConfig)
-	logDisplay := logdisplay.NewLogDisplay(&logReader, logDisplayConfig)
+	logReader := logreader.NewLogReader(logReaderConfig)
+	logDisplay := logdisplay.NewLogDisplay(&logReader, &logDisplayConfig)
 	logDisplay.DisplayUI()
 }
 

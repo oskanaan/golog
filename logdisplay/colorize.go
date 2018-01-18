@@ -7,23 +7,37 @@ import (
 
 //prepends/appends the header color to the log headers
 //Returns a color coded string
-func colorizeHeader(header string, logdisplayConfig LogDisplayConfig) string {
+func colorizeHeader(header string, logdisplayConfig *LogDisplayConfig) string {
 	return fmt.Sprint(fmt.Sprintf("\033[3%d;%d;1m", 2, 4), header, "\033[0m")
+}
+
+//prepends/appends the header color to the log headers
+//Returns a color coded string
+func colorizeActive(text string, logdisplayConfig *LogDisplayConfig) string {
+	return fmt.Sprint(fmt.Sprintf("\033[3%d;%d;1m", 2, 4), text, "\033[0m")
 }
 
 //prepends/appends the color of the log entry based on the severity
 //Returns a color coded string
-//Todo: make the colors and severity values configurable
-func colorizeLogEntry(logEntry string, logdisplayConfig LogDisplayConfig) string {
+func colorizeLogEntry(logEntry string, logdisplayConfig *LogDisplayConfig, highlight bool) string {
 	colorCode := severityColorCode(logEntry, logdisplayConfig)
+
+	if highlight {
+		colorCode[1] = 7
+	}
+
 	pre := fmt.Sprintf("\033[3%d;%d;1m", colorCode...)
 	return fmt.Sprint(pre, logEntry, "\033[0m")
 }
 
-func severityColorCode(entry string, logdisplayConfig LogDisplayConfig) []interface{} {
+func severityColorCode(entry string, logdisplayConfig *LogDisplayConfig) []interface{} {
 	for _, code := range logdisplayConfig.Severities {
 		if severityMatch(entry, code.Severity) {
-			return code.Colors
+			colors := make([]interface{}, len(code.Colors))
+			for index, colorCode := range code.Colors {
+				colors[index] = colorCode
+			}
+			return colors
 		}
 	}
 

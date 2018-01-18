@@ -68,7 +68,7 @@ func getPreviousLine(file *os.File, currentPosition int) string {
 //Returns the total count and an error if a non EOF error is encountered
 func getLineCount(r io.Reader) (int, error) {
 	buf := make([]byte, 32*1024)
-	count := 0
+	count := 1
 	lineSep := []byte{'\n'}
 
 	for {
