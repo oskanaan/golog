@@ -25,6 +25,7 @@ const mainView = "mainView"
 type LogDisplayConfig struct {
 	Severities []Severity
 	Files      []LogFile `yaml:files`
+	Search     Search    `yaml:search`
 }
 
 type LogFile struct {
@@ -35,6 +36,10 @@ type LogFile struct {
 type Severity struct {
 	Severity string `yaml:"severity"`
 	Colors []interface{} `yaml:"colors"`
+}
+
+type Search struct {
+	HighlightColor []interface{} `yaml:"highlightColor"`
 }
 
 type LogDisplay struct {
@@ -93,7 +98,7 @@ func (l *LogDisplay) DisplayUI() {
 				})
 			}
 
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 		}
 	}(g, l)
 
@@ -317,6 +322,22 @@ func (l *LogDisplay) keybindings(g *gocui.Gui) error {
 		return err
 	}
 
+	if err := g.SetKeybinding(mainView, gocui.KeyF4, gocui.ModNone, l.switchToFile4); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding(mainView, gocui.KeyF5, gocui.ModNone, l.switchToFile5); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding(mainView, gocui.KeyF6, gocui.ModNone, l.switchToFile6); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding(mainView, gocui.KeyF7, gocui.ModNone, l.switchToFile7); err != nil {
+		return err
+	}
+
 	if err := g.SetKeybinding(mainView, gocui.KeySpace, gocui.ModNone, l.search); err != nil {
 		return err
 	}
@@ -427,6 +448,30 @@ func (l *LogDisplay) switchToFile2(g *gocui.Gui, v *gocui.View) error {
 //Sets third log file to the active one
 func (l *LogDisplay) switchToFile3(g *gocui.Gui, v *gocui.View) error {
 	l.switchToFile(g, v,2)
+	return nil
+}
+
+//Sets fourth log file to the active one
+func (l *LogDisplay) switchToFile4(g *gocui.Gui, v *gocui.View) error {
+	l.switchToFile(g, v,3)
+	return nil
+}
+
+//Sets fifth log file to the active one
+func (l *LogDisplay) switchToFile5(g *gocui.Gui, v *gocui.View) error {
+	l.switchToFile(g, v,4)
+	return nil
+}
+
+//Sets sixth log file to the active one
+func (l *LogDisplay) switchToFile6(g *gocui.Gui, v *gocui.View) error {
+	l.switchToFile(g, v,5)
+	return nil
+}
+
+//Sets seventh log file to the active one
+func (l *LogDisplay) switchToFile7(g *gocui.Gui, v *gocui.View) error {
+	l.switchToFile(g, v,6)
 	return nil
 }
 

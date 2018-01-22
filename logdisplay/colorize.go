@@ -23,7 +23,7 @@ func colorizeLogEntry(logEntry string, logdisplayConfig *LogDisplayConfig, highl
 	colorCode := severityColorCode(logEntry, logdisplayConfig)
 
 	if highlight {
-		colorCode[1] = 7
+		colorCode = logdisplayConfig.Search.HighlightColor
 	}
 
 	pre := fmt.Sprintf("\033[3%d;%d;1m", colorCode...)

@@ -16,15 +16,19 @@ func readLinesStartingFromPosition(file *os.File, capacity, lineNumber int) ([]s
 	rows := make([]string, 0)
 	linesRead := 0
 	currentPosition := lineNumber
+	firstPass := true
 	for linesRead < capacity {
 		//If first iteration and the cursor will move before the file beginning, set the current position to 1 position after the capacity
-		if currentPosition <= capacity && linesRead == 0 {
+		if firstPass && currentPosition <= capacity && linesRead == 0 {
 			currentPosition = capacity + 1
 		}
-		line := getPreviousLine(file, currentPosition)
+
+		firstPass = false
+
+		line, err := getPreviousLine(file, currentPosition)
 		currentPosition--
 
-		if line == "" {
+		if err == io.EOF {
 			continue
 		}
 
@@ -52,16 +56,16 @@ func head(file *os.File, capacity int) ([]string, int) {
 
 //Retrieves the previous line starting from the current position
 //Returns a the previous line and the new offset
-func getPreviousLine(file *os.File, currentPosition int) string {
+func getPreviousLine(file *os.File, currentPosition int) (string, error) {
 	previousLineNumber := currentPosition - 1
 	if previousLineNumber < 0 {
-		return ""
+		return "", nil
 	}
 
 	file.Seek(0, 0)
-	line, _, _ := readLine(file, previousLineNumber)
+	line, _, err := readLine(file, previousLineNumber)
 
-	return line
+	return line, err
 }
 
 //Counts the total number of lines within a file
