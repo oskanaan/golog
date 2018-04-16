@@ -338,6 +338,18 @@ func (l *LogDisplay) keybindings(g *gocui.Gui) error {
 		return err
 	}
 
+	if err := g.SetKeybinding(mainView, gocui.KeyF8, gocui.ModNone, l.switchToFile8); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding(mainView, gocui.KeyF9, gocui.ModNone, l.switchToFile9); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding(mainView, gocui.KeyF10, gocui.ModNone, l.switchToFile10); err != nil {
+		return err
+	}
+
 	if err := g.SetKeybinding(mainView, gocui.KeySpace, gocui.ModNone, l.search); err != nil {
 		return err
 	}
@@ -472,6 +484,24 @@ func (l *LogDisplay) switchToFile6(g *gocui.Gui, v *gocui.View) error {
 //Sets seventh log file to the active one
 func (l *LogDisplay) switchToFile7(g *gocui.Gui, v *gocui.View) error {
 	l.switchToFile(g, v,6)
+	return nil
+}
+
+//Sets eighth log file to the active one
+func (l *LogDisplay) switchToFile8(g *gocui.Gui, v *gocui.View) error {
+	l.switchToFile(g, v,7)
+	return nil
+}
+
+//Sets ninth log file to the active one
+func (l *LogDisplay) switchToFile9(g *gocui.Gui, v *gocui.View) error {
+	l.switchToFile(g, v,8)
+	return nil
+}
+
+//Sets tenth log file to the active one
+func (l *LogDisplay) switchToFile10(g *gocui.Gui, v *gocui.View) error {
+	l.switchToFile(g, v,9)
 	return nil
 }
 

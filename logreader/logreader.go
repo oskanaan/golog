@@ -4,7 +4,6 @@ import (
 	"os"
 	"strings"
 	"bufio"
-	"fmt"
 )
 
 type LogReaderConfig struct {
@@ -28,6 +27,8 @@ type LogReader struct {
 	config        LogReaderConfig
 	currentOffset []int
 	Capacity      int
+	currentLoadedPage [][]string
+	previousReadFileInfo os.FileInfo
 }
 
 func NewLogReader(config LogReaderConfig) LogReader {
@@ -56,6 +57,19 @@ func (l *LogReader) Refresh() *[][]string {
 //Reads the last N lines where N=The capacity configuration value
 //Returns a two dimensional slice containing the parsed rows
 func (l *LogReader) Tail() *[][]string {
+	fileInfo, err := os.Stat(l.config.Files[l.FileIndex].LogFile)
+	if err != nil {
+		return &[][]string{}
+	}
+	//Check if any changes happened to the file
+	if l.previousReadFileInfo != nil &&
+		fileInfo.Size() == l.previousReadFileInfo.Size() &&
+		fileInfo.ModTime() == l.previousReadFileInfo.ModTime() &&
+		l.currentLoadedPage != nil {
+		return &l.currentLoadedPage
+	}
+	l.previousReadFileInfo = fileInfo
+
 	file, err := l.openLogFile()
 	if err != nil {
 		return &[][]string{}
@@ -69,6 +83,7 @@ func (l *LogReader) Tail() *[][]string {
 	}
 
 	l.currentOffset[l.FileIndex] = offset
+	l.currentLoadedPage = rows
 	return &rows
 }
 

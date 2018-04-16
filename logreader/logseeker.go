@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-const readBufSize = 5120
-
 //Reads a maximum of "capacity" number of lines starting from the offset position
 //Returns a slice containing a maximum of "capacity" entries and the current position.
 func readLinesStartingFromPosition(file *os.File, capacity, lineNumber int) ([]string, int) {
@@ -111,6 +109,7 @@ func stackTrace(r *os.File, lineNum int, delim string) (stackTrace string) {
 	line := ""
 
 	for !strings.Contains(line, delim) {
+
 		r.Seek(0, io.SeekStart)
 		stackTrace = stackTrace + "\n" + line
 
