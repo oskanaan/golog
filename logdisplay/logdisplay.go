@@ -74,7 +74,7 @@ func (l *LogDisplay) DisplayUI() {
 	defer g.Close()
 	g.Cursor = true
 	g.Mouse = true
-	l.tail()
+	//l.tail()
 
 	g.SetManagerFunc(l.layout)
 

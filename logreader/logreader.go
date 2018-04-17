@@ -27,7 +27,7 @@ type LogReader struct {
 	config        LogReaderConfig
 	currentOffset []int
 	Capacity      int
-	currentLoadedPage [][]string
+	currentLoadedPage *[][]string
 	previousReadFileInfo os.FileInfo
 }
 
@@ -61,14 +61,13 @@ func (l *LogReader) Tail() *[][]string {
 	if err != nil {
 		return &[][]string{}
 	}
-	//Check if any changes happened to the file
+	//Check if any changes happened to the file, otherwise return last page
 	if l.previousReadFileInfo != nil &&
 		fileInfo.Size() == l.previousReadFileInfo.Size() &&
 		fileInfo.ModTime() == l.previousReadFileInfo.ModTime() &&
 		l.currentLoadedPage != nil {
-		return &l.currentLoadedPage
+		return l.currentLoadedPage
 	}
-	l.previousReadFileInfo = fileInfo
 
 	file, err := l.openLogFile()
 	if err != nil {
@@ -83,7 +82,8 @@ func (l *LogReader) Tail() *[][]string {
 	}
 
 	l.currentOffset[l.FileIndex] = offset
-	l.currentLoadedPage = rows
+	l.currentLoadedPage = &rows
+	l.previousReadFileInfo = fileInfo
 	return &rows
 }
 
