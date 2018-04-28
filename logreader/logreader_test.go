@@ -367,7 +367,7 @@ func TestLogReader_Progress_Head(t *testing.T) {
 	logReader.SetCapacity(2)
 	logReader.Head()
 	actual := logReader.Progress()
-	expected := 20
+	expected := 58*100/291
 
 	if actual != expected {
 		t.Errorf("Expected %s lines, got %s", expected, actual)

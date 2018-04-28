@@ -23,6 +23,7 @@ const searchButton = "searchButton"
 const mainView = "mainView"
 
 type LogDisplayConfig struct {
+	AutoDetectFiles     string `yaml:"autoDetectFiles"`
 	Severities []Severity
 	Files      []LogFile `yaml:files`
 	Search     Search    `yaml:search`
@@ -57,6 +58,9 @@ func NewLogDisplay(logReader *logreader.LogReader, logdisplayConfig *LogDisplayC
 	var l LogDisplay
 	l.logReader = logReader
 	l.logdisplayConfig = logdisplayConfig
+
+
+
 	l.tailOn = make([]*bool, len(l.logdisplayConfig.Files))
 	for index := 0 ; index < len(l.logdisplayConfig.Files) ; index ++ {
 		l.tailOn[index] = &[]bool{true}[0]
@@ -112,6 +116,7 @@ func (l *LogDisplay) DisplayUI() {
 //Prints the log to the stdout, used for debugging purposes only
 func (l LogDisplay) DisplayStdout() {
 	l.logReader.SetCapacity(50)
+	l.tail()
 	l.tail()
 	fmt.Print(l.formattedLog())
 }

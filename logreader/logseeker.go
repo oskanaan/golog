@@ -1,135 +1,214 @@
 package logreader
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 	"os"
 	"strings"
+	"bufio"
 )
 
 //Reads a maximum of "capacity" number of lines starting from the offset position
 //Returns a slice containing a maximum of "capacity" entries and the current position.
-func readLinesStartingFromPosition(file *os.File, capacity, lineNumber int) ([]string, int) {
+func readLinesStartingFromPosition(input io.ReadSeeker, capacity int, start int) ([]string, int, error) {
 	rows := make([]string, 0)
-	linesRead := 0
-	currentPosition := lineNumber
-	firstPass := true
-	for linesRead < capacity {
-		//If first iteration and the cursor will move before the file beginning, set the current position to 1 position after the capacity
-		if firstPass && currentPosition <= capacity && linesRead == 0 {
-			currentPosition = capacity + 1
-		}
-
-		firstPass = false
-
-		line, err := getPreviousLine(file, currentPosition)
-		currentPosition--
-
-		if err == io.EOF {
-			continue
-		}
-
-		tempRows := make([]string, 0)
-		tempRows = append(tempRows, line)
-		rows = append(tempRows, rows...)
-		linesRead++
+	if _, err := input.Seek(int64(start), 0); err != nil {
+		return rows, -1, err
 	}
 
-	return rows, currentPosition
+	r := bufio.NewReader(input)
+	pos := int64(start)
+	for i := 0; i < capacity; i++ {
+		data, err := r.ReadBytes('\n')
+		pos += int64(len(data))
+		if err == nil || err == io.EOF {
+			if len(data) > 1 && data[len(data)-1] == '\n' {
+				data = data[:len(data)-1]
+			}
+			//Only a new line character
+			if len(data) == 1 && data[len(data)-1] == '\n' {
+				data = []byte{' '}
+			}
+
+			if len(data) > 0 && data[len(data)-1] == '\r' {
+				data = data[:len(data)-1]
+			}
+			rows = append(rows, string(data))
+		}
+		if err != nil {
+			if err != io.EOF {
+				return rows, int(pos), err
+			}
+			break
+		}
+	}
+	return rows, int(pos), nil
 }
 
 //A convenience method for tailing a file
 //Returns a slice containing the retrieved rows and the new offset
-func tail(file *os.File, capacity int) ([]string, int) {
-	fileLineCount, _ := getLineCount(file)
-	return readLinesStartingFromPosition(file, capacity, fileLineCount+1)
+func tail(file *os.File, capacity int, endOffset int) ([]string, int, error) {
+	tailStartPosition := tailStartPosition(file, capacity, endOffset)
+	return readLinesStartingFromPosition(file, capacity, tailStartPosition)
 }
 
 //A convenience method to head a file
 //Returns a slice containing the retrieved rows and the new offset
-func head(file *os.File, capacity int) ([]string, int) {
-	return readLinesStartingFromPosition(file, capacity, 0)
+func head(file *os.File, capacity int, offset int) ([]string, int, error) {
+	return readLinesStartingFromPosition(file, capacity, offset)
 }
 
-//Retrieves the previous line starting from the current position
-//Returns a the previous line and the new offset
-func getPreviousLine(file *os.File, currentPosition int) (string, error) {
-	previousLineNumber := currentPosition - 1
-	if previousLineNumber < 0 {
-		return "", nil
+func nextLine(file *os.File, offset int) (string, int, error) {
+	data, offset, err := head(file, 1, offset)
+	return data[0], offset, err
+}
+
+func lastLine(file *os.File, capacity int, offset int) (string, int, error) {
+	data, offset, err := tail(file, capacity, offset)
+	return data[capacity-1], offset, err
+}
+
+func tailStartPosition(file *os.File, capacity int, endOffset int) int {
+	bufferSize := 128
+	fileInfo, _ := file.Stat()
+	size := endOffset
+	if endOffset == -1 {
+		size = int(fileInfo.Size())
 	}
-
-	file.Seek(0, 0)
-	line, _, err := readLine(file, previousLineNumber)
-
-	return line, err
-}
-
-//Counts the total number of lines within a file
-//Returns the total count and an error if a non EOF error is encountered
-func getLineCount(r io.Reader) (int, error) {
-	buf := make([]byte, 32*1024)
-	count := 1
+	buf := make([]byte, bufferSize)
 	lineSep := []byte{'\n'}
 
-	for {
-		c, err := r.Read(buf)
-		count += bytes.Count(buf[:c], lineSep)
+	linesFromEnd := 0
+	newOffset := size
 
-		switch {
-		case err == io.EOF:
-			return count, nil
+	for linesFromEnd < capacity {
+		newOffset -= bufferSize
+		if newOffset < 0 {
+			bufDifference := newOffset
+			newOffset = 0
+			if len(buf) <= -1 * bufDifference {
+				buf = buf[0:0]
+			} else {
+				buf = buf[:len(buf) + bufDifference]
+			}
+		}
+		if len(buf) == 0 {
+			break
+		}
+		file.Seek(int64(newOffset), 0)
+		_, err := file.Read(buf)
 
-		case err != nil:
-			return count, err
+		if err != nil {
+			break
+		}
+		if bytes.Count(buf, lineSep) >= 0 {
+			linesFromEnd += bytes.Count(buf, lineSep)
+			//Read too much, go to the correct offset.
+			for linesFromEnd > capacity {
+				newLineIndex := bytes.Index(buf, lineSep)
+				if newLineIndex == -1 {
+					break
+				} else {
+					//Get past the new line character
+					newLineIndex ++
+				}
+				buf = buf[newLineIndex:]
+				newOffset += newLineIndex
+				linesFromEnd--
+
+			}
 		}
 	}
+
+	if newOffset < 0 {
+		newOffset = 0
+	} else {
+		if newOffset > 0 {
+			file.Seek(int64(newOffset-1), 0)
+			previousChar := make([]byte, 1)
+			file.Read(previousChar)
+
+			if previousChar[0] != '\n' {
+				//Are we at the beginning of the line? if not, get the offset of the start of the first line within 512 characters.
+				lineBufSize := 512
+				startOffset := newOffset - lineBufSize - 1
+				if startOffset < 0 {
+					lineBufSize += startOffset
+					startOffset = 0
+				}
+
+				if lineBufSize > 0 {
+					buf := make([]byte, lineBufSize)
+					file.Seek(int64(startOffset), 0)
+					file.Read(buf)
+
+					if buf[lineBufSize-1] != '\n' {
+						lastNewLineIndex := bytes.LastIndex(buf, lineSep)
+						newOffset -= len(string(buf[lastNewLineIndex+1:])) + 1
+					}
+				}
+			}
+		}
+	}
+
+	return newOffset
 }
 
-//Reads a specific line from a file
-//Returns the line at the specified index, the index of the last line read, and an error if any error was encountered
 func readLine(r io.Reader, lineNum int) (line string, lastLine int, err error) {
 	sc := bufio.NewScanner(r)
-	for sc.Scan() {
-		lastLine++
-		if lastLine == lineNum {
-			// you can return sc.Bytes() if you need output in []bytes
-			return sc.Text(), lastLine, sc.Err()
+	scanError := io.EOF
+
+	for {
+		for sc.Scan() {
+			lastLine++
+			if lastLine == lineNum {
+				// you can return sc.Bytes() if you need output in []bytes
+				return sc.Text(), lastLine, sc.Err()
+			}
+		}
+		//In case the last scan caused any issues, such as ErrorTooLong.
+		if sc.Err() != nil {
+			scanError = sc.Err()
+		}
+
+		if scanError == io.EOF {
+			break
 		}
 	}
-	return line, lastLine, io.EOF
+
+	return line, lastLine, scanError
 }
 
 //Reads all lines related to a stack trace starting from the specified index "lineNum"
 //Returns a string representing the stack trace
-func stackTrace(r *os.File, lineNum int, delim string) (stackTrace string) {
-	index := lineNum
-	linesRead := 1
-	line := ""
+func stackTrace(r *os.File, offset int, delim string) (stackTrace string) {
+	tailStart := tailStartPosition(r, 20, offset)
+	data, newOffset, _ := head(r, 20, tailStart)
+	linesRead := 0
 
-	for !strings.Contains(line, delim) {
+	for {
+		for _, line := range data {
+			if !strings.Contains(line, delim) {
+				stackTrace = stackTrace + "\n" + line
+			} else {
+				return stackTrace
+			}
 
-		r.Seek(0, io.SeekStart)
-		stackTrace = stackTrace + "\n" + line
+			//A maximum of a 100 lines to be displayed
+			//Todo: Display the stack trace in a scrollable view.
+			if linesRead > 100 {
+				return stackTrace
+			}
 
-		//A maximum of a 100 lines to be displayed
-		//Todo: Display the stack trace in a scrollable view.
-		if linesRead > 100 {
+			linesRead++
+		}
+		data, newOffset, _ = head(r, 20, newOffset)
+
+		if len(data) == 0 {
 			break
 		}
-
-		line, _, _ = readLine(r, index)
-		index++
-		linesRead++
-
-		//if s, ok := r.(io.Seeker); ok {
-		//	s.Seek(int64(len(line))+1, io.SeekCurrent) // seek relative to current file pointer
-		//}
-		//line, _, _ = readLine(r, linesRead)
-		//fmt.Println(line, strings.Contains(line, delim), index, linesRead)
-
 	}
+
 
 	return stackTrace
 }
